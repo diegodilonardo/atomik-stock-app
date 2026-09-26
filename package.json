@@ -1,0 +1,40 @@
+{
+  "name": "atomik-stock-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Consulta diaria de precios y stock Atomik con exportacion Excel",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:build-script": "node scripts/build-sql-installer.js",
+    "db:create": "node scripts/create-database.js",
+    "user:create-admin": "node scripts/create-admin.js",
+    "company:save": "node scripts/company-save.js",
+    "import:stock": "node scripts/import-stock.js",
+    "export:grid": "node scripts/export-grid.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "uuid": "^11.1.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.2",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "image-size": "^2.0.4",
+    "jsonwebtoken": "^9.0.2",
+    "mssql": "^11.0.1",
+    "node-cron": "^4.2.1",
+    "pino": "^9.9.4",
+    "pino-pretty": "^13.1.1"
+  }
+}

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestión Stock</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <section id="loginView" class="login-shell">
+    <form id="loginForm" class="login-card">
+      <div class="brand-mark">A</div>
+      <p class="eyebrow">GESTIÓN STOCK</p>
+      <h1>Stock para vendedores</h1>
+      <p class="muted">Consultá precios y disponibilidad actualizada.</p>
+      <label>Usuario<input id="loginUser" autocomplete="username" required></label>
+      <label>Contraseña<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+      <button class="primary" type="submit">Ingresar</button>
+      <p id="loginError" class="error" role="alert"></p>
+    </form>
+  </section>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark small">A</span><div><strong id="companyName">Gestión Stock</strong><small>Stock comercial</small></div></div>
+      <nav>
+        <label id="viewCompanyField" class="hidden">Empresa<select id="viewCompany"></select><small id="viewCompanyHint"></small></label>
+        <button class="nav-item active" data-type="">Stock general</button>
+        <button class="nav-item" data-type="MODULOS">Módulos</button>
+        <button class="nav-item" data-type="ACCIONADO">Accionado</button>
+        <button class="nav-item" data-type="SUELTOS">Sueltos</button>
+        <button id="gridsButton" class="nav-item" type="button" title="Ir a Grillas de stock" aria-controls="gridsTitle">Grillas de stock</button>
+        <button id="usersButton" class="nav-item admin-only" type="button">Usuarios</button>
+        <button id="companyButton" class="nav-item admin-only" type="button">Configuración de empresa</button>
+      </nav>
+      <div class="sidebar-footer"><span id="userName"></span><small id="userRole"></small><button id="logoutButton" class="link">Cerrar sesión</button></div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div><p class="eyebrow" id="companyHeading">GRILLA</p><h1 id="viewTitle">Stock general</h1></div>
+        <div class="actions">
+          <button id="refreshButton" class="secondary admin-only">Actualizar stock</button>
+          <a id="downloadView" class="primary button" href="/api/export/download">Descargar Excel de esta vista</a>
+        </div>
+      </header>
+
+      <section class="status-line"><span class="status-dot"></span><span id="lastUpdate">Consultando última actualización…</span></section>
+      <p id="refreshProgress" class="muted hidden" role="status" aria-live="polite" style="margin:0 0 20px"></p>
+      <section id="downloadProgress" class="download-progress hidden" aria-label="Progreso de exportación">
+        <p id="downloadStatus" role="status" aria-live="polite"></p>
+        <progress id="downloadBar" max="100" aria-label="Progreso de descarga"></progress>
+      </section>
+      <section class="cards">
+        <article><span>Productos</span><strong id="productsCount">—</strong></article>
+        <article><span>Stock total (pares)</span><strong id="stockTotal">—</strong></article>
+        <article><span>Módulos</span><strong id="moduleStock">—</strong></article>
+        <article><span>Sueltos</span><strong id="singleStock">—</strong></article>
+      </section>
+
+      <section class="panel stock-panel">
+        <div class="stock-filters">
+          <div class="filter-field" id="priceListField" hidden><label for="priceListFilter">Lista de precios</label><select id="priceListFilter"><option value="">Precio habitual</option></select></div>
+          <div class="filter-field"><span>Marca</span><div id="brandFilter"></div></div>
+          <div class="filter-field"><span>Licencia</span><div id="licenseFilter"></div></div>
+          <div class="filter-field"><span>Rubro</span><div id="rubroFilter"></div></div>
+          <div class="filter-field"><span>Año</span><div id="yearFilter"></div></div>
+          <div class="filter-field"><span>Temporada</span><div id="seasonFilter"></div></div>
+          <div class="filter-field"><span>Tipo producto</span><div id="levelFilter"></div></div>
+          <label>Accionado<select id="actionedFilter"><option value="">Todos</option><option value="confirmed">Accionados confirmados</option><option value="possible">Posibles accionados</option><option value="unconfirmed">Sin confirmar como accionado</option></select></label>
+          <label class="stock-positive"><input id="positiveStock" type="checkbox">Solo stock mayor que 0</label>
+          <button id="clearFilters" class="secondary" type="button">Limpiar filtros</button>
+          <small>Los totales superiores responden a Año, Temporada, Rubro, Licencia y Marca. Sin selección, muestran toda la empresa. Los demás filtros se aplican solo a la tabla.</small>
+          <small>Filas en ámbar: posible accionado porque el precio mayorista es menor que el precio base. Ambos precios se muestran por par; la clasificación se confirma manualmente.</small>
+        </div>
+        <div class="toolbar">
+          <div class="search"><span>⌕</span><input id="searchInput" maxlength="200" aria-label="Buscar por año, modelo, color o código" placeholder="Ej.: 26 emmet blanco" title="Combiná año, modelo, color o código en cualquier orden. Separá con espacios o comas."></div>
+          <div class="bulk admin-only">
+            <span id="selectionCount" aria-live="polite">0 producto(s) seleccionado(s)</span>
+            <button id="clearSelection" class="secondary" disabled>Limpiar selección</button>
+            <button id="toModulesButton" class="secondary">Pasar a módulos</button>
+            <button id="toActionedButton" class="secondary">Pasar a accionado</button>
+          </div>
+        </div>
+        <div id="stockTableScroll" class="table-wrap">
+          <table>
+            <thead><tr><th class="admin-only"><input id="selectAll" type="checkbox" aria-label="Seleccionar página"></th><th>Imagen</th><th>Tipo</th><th>Año</th><th>Modelo</th><th>Color</th><th id="sizeColumnTitle">Curva / talle</th><th>Sexo</th><th>Edad</th><th>Disciplina</th><th>Código alfa</th><th>Stock</th><th title="Precio base por par: P_BAS dividido por PARES">Precio base</th><th>Precio mayorista</th><th>Precio público</th></tr></thead>
+            <tbody id="stockRows"></tbody>
+          </table>
+        </div>
+        <div class="pagination"><span id="pageInfo"></span><div><button id="prevPage" class="secondary">Anterior</button><button id="nextPage" class="secondary">Siguiente</button></div></div>
+      </section>
+      <section class="grid-manager" aria-labelledby="gridsTitle">
+        <h2 id="gridsTitle" tabindex="-1">Grillas de stock</h2>
+        <p>Consultá y descargá tus grillas con el stock vigente.</p>
+        <div class="grid-controls grid-download-controls">
+          <label>Grilla guardada<select id="savedGrid"><option value="">Vista libre</option></select></label>
+          <a id="downloadGrid" class="primary button hidden">Descargar Excel</a>
+          <button id="exportSeveral" class="secondary" type="button">Exportar varias grillas</button>
+        </div>
+        <p id="gridStatus" class="muted" role="status">Vista libre: elegí los filtros de la tabla.</p>
+        <p id="gridRulesSummary" class="grid-rules-summary"></p>
+        <details class="admin-only grid-section">
+          <summary>Crear o editar grilla</summary>
+          <p class="muted">Se guardan los filtros actuales de la tabla y las columnas elegidas.</p>
+          <div class="grid-controls">
+            <label>Nombre de la grilla<input id="gridName" maxlength="150" placeholder="Ej.: Calzado con stock"></label>
+          </div>
+          <details class="grid-columns-section"><summary>Columnas del Excel</summary>
+            <p>Elegí los campos visibles. Stock, pedido, subtotales y talles se conservan; los códigos siguen ocultos.</p>
+            <div id="excelColumns" class="excel-columns"></div>
+          </details>
+          <div class="grid-controls">
+            <button id="updateGrid" class="primary" type="button" disabled>Guardar cambios</button>
+            <button id="createGrid" class="secondary" type="button">Guardar como nueva</button>
+          </div>
+          <div class="grid-archive"><button id="archiveGrid" class="secondary" type="button" disabled>Anular grilla</button></div>
+        </details>
+        <details class="admin-only grid-section">
+          <summary>Exportación automática <span id="scheduleSummary" class="schedule-summary">Sin grilla seleccionada</span></summary>
+        <fieldset id="gridSchedule" class="admin-only" disabled>
+          <legend>Exportación diaria de la grilla guardada</legend>
+          <div class="grid-controls">
+            <label><span><input id="exportEnabled" type="checkbox" style="width:auto"> Activar exportación diaria</span></label>
+            <label>Horario de Argentina<input id="exportTime" type="time" value="08:00"></label>
+            <label>Ruta completa del Excel<input id="exportPath" maxlength="400" placeholder="Ej.: C:\Grillas\Calzado.xlsx"></label>
+            <button id="saveSchedule" type="button" class="secondary">Guardar programación</button>
+          </div>
+          <p>Usa las reglas guardadas y el stock vigente. Reemplaza el Excel de esa ruta cada día. La aplicación debe estar encendida; si inicia después del horario, recupera la ejecución pendiente del día.</p>
+          <p id="scheduleStatus" role="status">Guardá o seleccioná una grilla para programarla.</p>
+        </fieldset>
+        </details>
+      </section>
+      <div id="toast" class="toast hidden" role="status"></div>
+    </main>
+  </div>
+
+  <div id="usersModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="usersTitle">
+    <section class="modal-card">
+      <header><div><p class="eyebrow">ADMINISTRACIÓN</p><h2 id="usersTitle">Usuarios</h2></div><button id="closeUsers" class="icon-button" aria-label="Cerrar">×</button></header>
+      <p id="userCompanyAssignment" class="muted"></p>
+      <form id="userForm" class="user-form">
+        <label id="newUserCompanyField" class="hidden">Empresa asignada<select id="newUserCompany"></select></label>
+        <label>Usuario<input id="newUsername" required maxlength="80"></label>
+        <label>Nombre completo<input id="newFullName" required maxlength="150"></label>
+        <label>Contraseña<input id="newPassword" type="password" required minlength="8"></label>
+        <label>Rol<select id="newRole"><option value="CONSULTA">Consulta</option><option value="ADMIN">Administrador</option></select></label>
+        <button class="primary" type="submit">Crear usuario</button>
+        <button id="cancelUserEdit" class="secondary hidden" type="button">Cancelar edición</button>
+      </form>
+      <form id="changePasswordForm" class="hidden" autocomplete="off">
+        <h3 id="passwordUserTitle">Cambiar contraseña</h3>
+        <div class="grid-controls">
+          <label>Nueva contraseña<input id="replacementPassword" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></label>
+          <label>Repetir contraseña<input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></label>
+          <button id="savePassword" type="submit">Guardar contraseña</button>
+          <button id="cancelPassword" type="button" class="secondary">Cancelar</button>
+        </div>
+        <p id="passwordError" role="alert"></p>
+      </form>
+      <div class="table-wrap users-table"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Empresa</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody id="userRows"></tbody></table></div>
+    </section>
+  </div>
+  <div id="companyModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="companyTitle">
+    <section class="modal-card">
+      <header><h2 id="companyTitle">Configuración de empresa</h2><button id="closeCompany" class="icon-button" aria-label="Cerrar">×</button></header>
+      <p id="companyCode" class="muted"></p>
+      <p>El archivo de origen identifica a esta empresa. Los productos importados quedan asociados únicamente a ella.</p>
+      <form id="companyForm">
+        <label>Ruta completa del TXT de stock<input id="companySource" required maxlength="400" placeholder="\\servidor\carpeta\stock.TXT"></label>
+        <label>Ruta completa del Excel de salida (opcional)<input id="companyExcel" maxlength="400" placeholder="\\servidor\carpeta\Stock.xlsx"></label>
+        <label>Carpeta de fotos (opcional)<input id="companyImages" maxlength="380" placeholder="\\servidor\carpeta\fotos"></label>
+        <label>Coeficiente de precio público de esta empresa<input id="companyFactor" type="number" min="0.0001" max="99999" step="0.0001" aria-describedby="companyFactorHelp" required></label>
+        <p id="companyFactorHelp" class="muted">Precio público = precio mayorista por par × coeficiente. Este valor se usa cuando no hay uno específico para la marca, licencia, rubro y tipo de producto.</p>
+        <fieldset><legend>Coeficientes por lista, marca, licencia, rubro y tipo de producto</legend>
+          <p class="muted">Prioridad: combinación de la lista, marca de la lista, combinación de Todas las listas, marca de Todas las listas y general de empresa. Los campos vacíos usan el siguiente respaldo. Los accionados usan el coeficiente de módulo (nivel 950). Cada coeficiente de lista se conserva al cambiar su versión y se aplica a sus grillas.</p>
+          <div class="table-wrap"><table><thead><tr><th>Lista</th><th>Marca</th><th>Licencia</th><th>Rubro</th><th>Módulo</th><th>Suelto</th></tr></thead><tbody id="companyPriceFactors"></tbody></table></div>
+        </fieldset>
+        <label>Días de historial<input id="companyRetention" type="number" min="1" max="3650" step="1" required></label>
+        <button class="primary" type="submit">Guardar configuración</button>
+        <p id="companyError" class="error" role="alert"></p>
+      </form>
+    </section>
+  </div>
+  <script src="/js/multi-select.js" defer></script>
+  <script src="/js/app.js" defer></script>
+  <script src="/js/stock-scroll.js" defer></script>
+  <script src="/js/product-photos.js" defer></script>
+  <script src="/js/grid-batch.js" defer></script>
+  <script src="/js/download.js"></script>
+</body>
+</html>
