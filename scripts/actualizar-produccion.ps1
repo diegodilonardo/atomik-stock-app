@@ -1,6 +1,6 @@
 param(
     [string]$RutaApp = 'C:\atomik-stock-app',
-    [Parameter(Mandatory = $true)][string]$Servicio
+    [string]$Servicio = 'StockGrillasApp'
 )
 
 $ErrorActionPreference = 'Stop'

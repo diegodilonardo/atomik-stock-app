@@ -331,7 +331,7 @@ Ejecuta pruebas, prepara archivos de codigo permitidos, crea el commit y publica
 Servidor, PowerShell como administrador, con repositorio clonado, rama con upstream, .env local y servicio Windows existente:
 
 ```powershell
-.\scripts\actualizar-produccion.ps1 -RutaApp C:\atomik-stock-app -Servicio NOMBRE_REAL_DEL_SERVICIO
+.\scripts\actualizar-produccion.ps1 -RutaApp C:\atomik-stock-app -Servicio StockGrillasApp
 ```
 
 Descarga cambios, rechaza modificaciones locales o ramas divergentes, detiene el servicio, actualiza por fast-forward, instala dependencias, ejecuta las migraciones SQL y vuelve a iniciar el servicio. Si falla la instalacion o migracion, deja el servicio detenido e informa el commit anterior; no revierte automaticamente la base de datos. Conserva el .env local y los archivos operativos excluidos de Git.
