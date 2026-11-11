@@ -112,17 +112,19 @@
     }
   }
   function clearExtraFilters() {
+    $('positiveStock').checked=false;
     for (const id of Object.keys(extraFilters)) pickers[id].setValues([]);
   }
   function visible() {
     const years = selected('years'), seasons = selected('seasons'), scope = $('scope').value;
+    const stockMatches = p => !$('positiveStock').checked || (p.STOCK !== null && p.STOCK !== undefined && Number.isFinite(Number(p.STOCK)) && Number(p.STOCK)>0);
     // Review the entire assignment, even when browse filters hide some products.
     if (scope === 'assigned' || categories.includes(scope)) {
-      return products.filter(p => scope === 'assigned' ? assignments.has(p.id) : assignments.get(p.id) === scope);
+      return products.filter(p => stockMatches(p) && (scope === 'assigned' ? assignments.has(p.id) : assignments.get(p.id) === scope));
     }
     const additional = Object.entries(extraFilters).map(([id,field])=>({field,values:selected(id)}));
     const words = $('search').value.toLocaleLowerCase().split(/\s+/).filter(Boolean);
-    return products.filter(p => years.includes(p.COD_ANIO) && seasons.includes(p.COD_TEM) &&
+    return products.filter(p => stockMatches(p) && years.includes(p.COD_ANIO) && seasons.includes(p.COD_TEM) &&
       additional.every(({field,values})=>!values.length || values.includes(filterValue(p, field))) &&
       words.every(w => `${p.DMODC} ${p.DCOLORC} ${p.COD_ALFA} ${p.CODIGO}`.toLocaleLowerCase().includes(w)) &&
       (scope === 'all' || (scope === 'assigned' ? assignments.has(p.id) : scope === 'unassigned' ? !assignments.has(p.id) : assignments.get(p.id) === scope)));
@@ -137,7 +139,7 @@
     $('counts').innerHTML = tabs.map(([value,label]) => `<button type="button" class="secondary" data-scope="${value}" aria-pressed="${scope===value}" ${busy?'disabled':''}>${label}</button>`).join('');
     const reviewing = scope === 'assigned' || categories.includes(scope);
     $('selectionViewHint').hidden = !reviewing;
-    $('selectionViewHint').textContent = 'Mostrando los productos asignados, sin aplicar los filtros de búsqueda. Podés seleccionarlos para cambiar su categoría o quitarlos. “Explorar productos” vuelve a tus filtros.';
+    $('selectionViewHint').textContent = 'Mostrando los productos asignados, sin aplicar los filtros de búsqueda, salvo Solo stock mayor a 0 si está activado. Podés seleccionarlos para cambiar su categoría o quitarlos. “Explorar productos” vuelve a tus filtros.';
     $('selectFiltered').textContent = `Seleccionar todos los ${reviewing ? 'resultados' : 'filtrados'} (${list.length})`;
     $('selectFiltered').disabled = busy || !list.length || list.every(p=>checked.has(p.id));
     $('clearSelection').disabled = busy || !checked.size;
@@ -179,6 +181,7 @@
   $('saved').onchange = () => { if(dirty && !confirm('Hay cambios sin guardar. ¿Querés descartarlos?')) { gridOptions(); return; } openGrid(grids.find(g=>String(g.id)===$('saved').value)); };
   ['years','seasons'].forEach(id => $(id).onchange = () => { checked.clear();page=1;dirty=true;masterOptions();render(); status('Los productos ya asignados se conservan. Podés combinar distintos años y temporadas en la misma grilla.'); });
   Object.keys(extraFilters).forEach(id => $(id).onchange = () => { checked.clear();page=1;render(); });
+  $('positiveStock').onchange = () => {checked.clear();page=1;render();};
   $('clearExtraFilters').onclick = () => { clearExtraFilters();checked.clear();page=1;extraOptions();render(); };
   ['search','scope'].forEach(id => $(id).addEventListener(id==='search'?'input':'change',()=>{checked.clear();page=1;render();}));
   $('counts').onclick = event => {
