@@ -46,7 +46,9 @@
     <button id="clearExtraFilters" class="secondary" type="button">Limpiar filtros adicionales</button>
   </section>
   <section class="panel">
-    <div class="fashion-actions"><div id="counts" role="group" aria-label="Ver productos de la grilla"></div><span id="checkedCount"></span>
+    <div class="fashion-actions"><div id="counts" role="group" aria-label="Ver productos de la grilla"></div><span id="checkedCount" role="status" aria-live="polite"></span>
+      <button id="selectFiltered" type="button" class="secondary">Seleccionar todos los filtrados</button>
+      <button id="clearSelection" type="button" class="secondary">Limpiar selección</button>
       <label>Asignar a<select id="category"><option>DISCIPLINA</option><option>HOMBRE</option><option>DAMA</option><option>KIDS</option><option>SUELTOS</option><option>ACCESORIOS</option></select></label>
       <button id="assign" class="secondary">Asignar seleccionados</button><button id="remove" class="secondary">Quitar de la grilla</button>
     </div>

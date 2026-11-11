@@ -83,10 +83,20 @@
   }
   function masterOptions(filters = { years: selected('years'), seasons: selected('seasons') }) {
     const years = [...new Set(products.map(p => p.COD_ANIO))].sort();
-    const seasons = [...new Map(products.map(p => [p.COD_TEM, p.DCOD_TEM || p.COD_TEM])).entries()].sort();
+    const available = products.filter(p=>!filters.years.length || filters.years.includes(p.COD_ANIO));
+    const seasonMap = new Map();
+    for(const p of available) {
+      if(!seasonMap.has(p.COD_TEM)) seasonMap.set(p.COD_TEM,new Map());
+      const labels=seasonMap.get(p.COD_TEM), label=p.DCOD_TEM || p.COD_TEM;
+      labels.set(label,(labels.get(label)||0)+1);
+    }
+    const seasons=[...seasonMap].sort(([a],[b])=>a.localeCompare(b)).map(([code,labels])=>{
+      const label=[...labels].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0]))[0][0];
+      return [code,code ? label : 'Sin código de temporada'];
+    });
     setOptions('years', [...new Set([...years,...filters.years])].map(y => [y,y || 'Sin año']), filters.years);
-    const seasonMap = new Map(seasons); filters.seasons.forEach(s => { if (!seasonMap.has(s)) seasonMap.set(s,s); });
-    setOptions('seasons', [...seasonMap].map(([code,label])=>[code,label || 'Sin temporada']), filters.seasons);
+    const options=seasons.map(([code,label])=>[code,seasons.filter(([,other])=>other===label).length>1 ? label+' (código '+code+')' : label]);
+    setOptions('seasons', options, filters.seasons.filter(code=>seasonMap.has(code)));
     extraOptions();
   }
   function extraOptions() {
@@ -128,6 +138,9 @@
     const reviewing = scope === 'assigned' || categories.includes(scope);
     $('selectionViewHint').hidden = !reviewing;
     $('selectionViewHint').textContent = 'Mostrando los productos asignados, sin aplicar los filtros de búsqueda. Podés seleccionarlos para cambiar su categoría o quitarlos. “Explorar productos” vuelve a tus filtros.';
+    $('selectFiltered').textContent = `Seleccionar todos los ${reviewing ? 'resultados' : 'filtrados'} (${list.length})`;
+    $('selectFiltered').disabled = busy || !list.length || list.every(p=>checked.has(p.id));
+    $('clearSelection').disabled = busy || !checked.size;
     $('checkedCount').textContent = `${checked.size} seleccionados`;
     $('pageInfo').textContent = `${list.length} productos · Página ${page} de ${pages}`;
     $('prev').disabled = busy || page === 1; $('next').disabled = busy || page === pages;
@@ -164,7 +177,7 @@
   $('status').after(missingButton);
   missingButton.onclick = () => { const ids=new Set(products.map(p=>p.id)); for(const id of assignments.keys()) if(!ids.has(id)) assignments.delete(id); dirty=true; missingButton.hidden=true; render(); status('Productos ausentes quitados. Guardá los cambios.'); };
   $('saved').onchange = () => { if(dirty && !confirm('Hay cambios sin guardar. ¿Querés descartarlos?')) { gridOptions(); return; } openGrid(grids.find(g=>String(g.id)===$('saved').value)); };
-  ['years','seasons'].forEach(id => $(id).onchange = () => { checked.clear();page=1;dirty=true;extraOptions();render(); status('Los productos ya asignados se conservan. Podés combinar distintos años y temporadas en la misma grilla.'); });
+  ['years','seasons'].forEach(id => $(id).onchange = () => { checked.clear();page=1;dirty=true;masterOptions();render(); status('Los productos ya asignados se conservan. Podés combinar distintos años y temporadas en la misma grilla.'); });
   Object.keys(extraFilters).forEach(id => $(id).onchange = () => { checked.clear();page=1;render(); });
   $('clearExtraFilters').onclick = () => { clearExtraFilters();checked.clear();page=1;extraOptions();render(); };
   ['search','scope'].forEach(id => $(id).addEventListener(id==='search'?'input':'change',()=>{checked.clear();page=1;render();}));
@@ -193,6 +206,8 @@
   };
   $('resetColumns').onclick=()=>{restoreColumns();dirty=true;};
   $('rows').onchange = e => { if(e.target.dataset.id) { if(e.target.checked) checked.add(e.target.dataset.id); else checked.delete(e.target.dataset.id); render(); } };
+  $('selectFiltered').onclick = () => { if(busy)return; for(const product of visible()) checked.add(product.id); render(); };
+  $('clearSelection').onclick = () => { if(busy)return; checked.clear();render(); };
   $('checkAll').onchange = () => { visible().sort(productComparator()).slice((page-1)*50,page*50).forEach(p=>{$('checkAll').checked?checked.add(p.id):checked.delete(p.id);});render(); };
   $('assign').onclick = () => { for(const id of checked) assignments.set(id,$('category').value); checked.clear(); dirty=true;render(); };
   $('remove').onclick = () => { for(const id of checked) assignments.delete(id);checked.clear();dirty=true;render(); };
