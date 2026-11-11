@@ -1,0 +1,21 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const ExcelJS = require('exceljs');
+const { buildSimpleStock } = require('../src/services/simple-stock-excel');
+test('stock simple conserva columnas, cantidades y precio seleccionado sin hojas de pedido', async () => {
+  const company = { ID_EMPRESA: 1, CODIGO: '0' };
+  const row = { ID_EMPRESA: 1, NIVEL: 950, DMODC: 'Modelo', DCOLORC: 'Azul', DTALLC: '35-40 X 12', TALLC: 'M', STOCK: 5, PARES: 12, PRECIO: 1200, PRICE_WHOLESALE: 90 };
+  const book = await buildSimpleStock(company, [row, { ...row, NIVEL: 900, STOCK: 3 }]);
+  const loaded = new ExcelJS.Workbook(); await loaded.xlsx.load(await book.xlsx.writeBuffer());
+  assert.equal(loaded.worksheets.length, 1);
+  const sheet = loaded.getWorksheet('STOCK');
+  assert.equal(sheet.columnCount, 6);
+  assert.equal(sheet.getCell('D2').value, '35-40 X 12');
+  assert.equal(sheet.getCell('D3').value, 'M');
+  assert.equal(sheet.getCell('E2').value, 5);
+  assert.equal(sheet.getCell('F2').value, 90);
+  assert.equal(sheet.getCell('A2').value, 'Sin imagen');
+  assert.equal(sheet.autoFilter, 'A1:F3');
+  await assert.rejects(buildSimpleStock(company, [{ ...row, ID_EMPRESA: 2 }]), /Empresa/);
+  assert.equal((await buildSimpleStock(company, [])).getWorksheet('STOCK').rowCount, 1);
+});

@@ -38,9 +38,24 @@ router.get('/', async (req, res, next) => {
     SELECT DISTINCT LISTA FROM dbo.STOCK_PRICES WHERE ID_EMPRESA=@company
     UNION SELECT LISTA FROM dbo.COMPANY_PRICE_FACTORS WHERE ID_EMPRESA=@company AND LISTA<>N'';`);
 
-  res.json({ ID_EMPRESA, CODIGO, NOMBRE, SOURCE_FILE, EXCEL_PATH, PUBLIC_PRICE_FACTOR, RETENTION_DAYS, IMAGE_DIRECTORY,
+  const brands = new Set(result.recordsets[1].map(row => row.MARCA));
+  const combinations = new Map(result.recordsets[2].map(row => [JSON.stringify([row.MARCA,row.LICENCIA,row.RUBRO]),row]));
+  let fashionWarning = '';
+  if (require('../services/fashion-source').fashionEnabled(CODIGO)) {
+    try {
+      const { products } = await require('../services/fashion-master').loadMaster(false,CODIGO);
+      for (const product of products) {
+        const row = { MARCA:String(product.DMARCA || '').trim(),
+          LICENCIA:/^SIN LICENCIA$/i.test(String(product.LICENCIAS || '').trim()) ? '' : String(product.LICENCIAS || '').trim(),
+          RUBRO:String(product.RUBRO || '').trim() };
+        brands.add(row.MARCA);
+        combinations.set(JSON.stringify([row.MARCA,row.LICENCIA,row.RUBRO]),row);
+      }
+    } catch { fashionWarning='No se pudo leer el maestro de moda; se muestran las reglas y combinaciones ya disponibles.'; }
+  }
+  res.json({ ID_EMPRESA, CODIGO, NOMBRE, SOURCE_FILE, EXCEL_PATH, PUBLIC_PRICE_FACTOR, RETENTION_DAYS, IMAGE_DIRECTORY, fashionWarning,
 
-    priceLists: result.recordsets[3].map(row => row.LISTA).sort(), combinations: result.recordsets[2], priceFactors: result.recordsets[0], brands: result.recordsets[1].map(row => row.MARCA).sort() });
+    priceLists: result.recordsets[3].map(row => row.LISTA).sort(), combinations: [...combinations.values()], priceFactors: result.recordsets[0], brands: [...brands].sort() });
 
   } catch (error) { next(error); }
 
@@ -98,7 +113,7 @@ router.put('/', async (req, res, next) => {
 
     }
 
-    source = normalizeFile(req.body.sourceFile);
+    source = String(req.body.sourceFile || '').trim() ? normalizeFile(req.body.sourceFile) : null;
 
     excel = String(req.body.excelPath || '').trim() ? normalizeFile(req.body.excelPath) : null;
 
@@ -106,7 +121,7 @@ router.put('/', async (req, res, next) => {
 
     if (imageDirectory) imageDirectory = path.win32.dirname(normalizeFile(imageDirectory.replace(/\\+$/, '') + '\\image.jpg'));
 
-    if (!/\.txt$/i.test(source) || (excel && !/\.xlsx$/i.test(excel))) throw new Error('El origen debe ser .TXT y la salida .xlsx');
+    if ((source && !/\.txt$/i.test(source)) || (excel && !/\.xlsx$/i.test(excel))) throw new Error('El origen debe ser .TXT y la salida .xlsx');
 
     if (!Number.isFinite(factor) || factor <= 0 || factor > 99999 || !Number.isInteger(retention) || retention < 1 || retention > 3650) {
 

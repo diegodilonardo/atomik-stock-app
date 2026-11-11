@@ -4,6 +4,70 @@ Aplicación web para consultar precios y stock, clasificar módulos e importar d
 
 ## Empresas y archivos de origen
 
+### Grillas de moda por empresa
+
+El acceso **Grillas de moda** aparece para las empresas con un maestro configurado.
+ATOMIK (código `0`) conserva la configuración original.
+Se lee el maestro dBase `.dbi` por FTP, separado del stock. Configurar las variables
+`MAESTRO_FTP_HOST`, `MAESTRO_FTP_PORT`, `MAESTRO_FTP_USER`, `MAESTRO_FTP_PASSWORD`
+y `MAESTRO_FTP_PATH` en el `.env` privado de cada instalación. No versionar credenciales.
+La ruta predeterminada es `/productos/maestros_vicbor/maestro_Atomik.dbi`.
+`MAESTRO_FTP_SECURE=true` permite FTPS explícito si el servidor lo ofrece.
+
+Para agregar otra empresa, configurar `MAESTRO_FTP_<CODIGO>_PATH` con su ruta propia.
+Opcionalmente configurar `MAESTRO_FTP_<CODIGO>_HOST`, `_PORT`, `_USER`, `_PASSWORD`
+y `_SECURE` si usa otra conexión; en caso contrario se usa la conexión general.
+GYD utiliza el código `70000`, el maestro `/PRODUCTOS/MAESTROS_GYD/maestro_gyd.DBI`
+y las fotos `\\172.24.0.175\Vicbor2\FOTOS\GYD`. Por ahora está habilitada solo para Moda,
+con origen de stock vacío. Su coeficiente general inicial es 1,85 y se configura de forma
+independiente, con reglas por marca, licencia, rubro y tipo de producto. La configuración
+incluye las combinaciones del maestro aunque todavía no haya stock importado.
+El maestro y la caché están separados por código de empresa, y las grillas
+guardadas por ID de empresa. Reiniciar la aplicación después de modificar `.env`.
+
+- Elegir uno o varios años y temporadas, buscar productos y asignarlos a una categoría.
+- En **Columnas del Excel** se pueden marcar los campos visibles y ordenarlos con ↑ / ↓.
+  La configuración se guarda en cada grilla y se aplica a todas sus categorías.
+  Pedido es obligatorio; los campos omitidos quedan ocultos cuando se necesitan para
+  los cálculos. RESUMEN y PEDIDO conservan su estructura y adaptan sus referencias.
+  Si se oculta Imagen, no se leen ni incrustan fotos. Restablecer formato actual
+  recupera las columnas y el orden originales. Las grillas anteriores mantienen ese formato.
+- Cada producto se asigna a una sola solapa: DISCIPLINA, HOMBRE, DAMA, KIDS, SUELTOS o ACCESORIOS.
+- Administradores pueden guardar, editar, actualizar el maestro y anular grillas.
+  Usuarios de consulta pueden abrir grillas y descargar el Excel.
+- Las asignaciones se guardan por empresa en `FASHION_GRIDS`, con control de versión
+  para evitar sobrescribir cambios de otro usuario. Ejecutar `npm run db:migrate`
+  al actualizar una instalación (migración `017_fashion_grids.sql`).
+- El maestro se conserva en memoria hasta una hora. **Actualizar maestro** fuerza
+  una lectura desde FTP. La exportación utiliza los precios de la copia vigente.
+- El Excel incluye solo las solapas de categorías con productos, sin stock. **Precio maestro** conserva
+  el importe original (no se divide por pares); se admiten precios cero. Pedido
+  multiplica ese importe para calcular el subtotal. Código y código alfa quedan ocultos.
+  Se utilizan las imágenes configuradas para la empresa cuando están disponibles.
+- La solapa RESUMEN mantiene el estilo de las grillas de stock y totaliza SKU pedidos,
+  módulos, pares (Pedido × Pares) e importes por categoría y en total.
+  Todas las hojas están protegidas: solo las celdas de Pedido de los productos son editables.
+- PEDIDO reúne automáticamente CODIGO, COD_ALFA y CANTIDAD de todas las categorías,
+  solo para cantidades mayores que cero. La cantidad es la ingresada en Pedido,
+  sin multiplicarla por pares. La hoja está protegida y las fórmulas se recalculan
+  en Excel al cargar o modificar el pedido; las filas restantes se muestran vacías.
+- Moda aplica bordes finos al área de datos, encabezados, totales y resumen.
+  Las fotos incrustadas se optimizan hasta 480 px en su lado mayor, conservando
+  la proporción y el tamaño visible de la celda. Se conserva la transparencia
+  cuando corresponde y se reutiliza cada foto dentro del libro. Los archivos
+  originales no se modifican; si la conversión aumenta el peso, se usa el original.
+
+En Moda, la columna antes llamada Precio maestro se muestra como **Precio mayorista**.
+**Precio público** es el precio mayorista por par multiplicado por el coeficiente configurado, respetando
+lista (si el maestro la incluye), marca, licencia, rubro y nivel, con respaldo al general
+de la empresa. `SIN LICENCIA` del DBI equivale a licencia vacía en la configuración.
+Los coeficientes se consultan de nuevo al abrir/actualizar el maestro y al exportar;
+los subtotales del pedido se calculan por módulos con el precio mayorista por par
+multiplicado por los pares del módulo y la cantidad pedida.
+- Los filtros sirven para explorar: una grilla puede combinar años y temporadas.
+- Si desaparecen productos del maestro, la aplicación
+  pide corregir la selección antes de guardar o exportar; no los descarta silenciosamente.
+
 ### Exportación diaria por grilla
 
 Al seleccionar una grilla guardada, los administradores pueden activar su exportación diaria,
@@ -323,7 +387,7 @@ La migración 016 conserva las reglas anteriores bajo Todas las listas. Se permi
 Desarrollo (repositorio origin configurado):
 
 ```powershell
-.\scripts\publicar-dev.ps1 -Mensaje "Descripcion del cambio"
+npm run git:publicar -- -Mensaje "Descripcion del cambio"
 ```
 
 Ejecuta pruebas, prepara archivos de codigo permitidos, crea el commit y publica la rama actual. No incluye .env, stock TXT, Excel ni carpetas de salida. Si falla el push, se puede repetir para enviar el commit pendiente.
@@ -331,9 +395,9 @@ Ejecuta pruebas, prepara archivos de codigo permitidos, crea el commit y publica
 Servidor, PowerShell como administrador, con repositorio clonado, rama con upstream, .env local y servicio Windows existente:
 
 ```powershell
-.\scripts\actualizar-produccion.ps1 -RutaApp C:\atomik-stock-app -Servicio StockGrillasApp
+npm run server:actualizar -- -RutaApp C:\atomik-stock-app -Servicio StockGrillasApp
 ```
 
-Descarga cambios, rechaza modificaciones locales o ramas divergentes, detiene el servicio, actualiza por fast-forward, instala dependencias, ejecuta las migraciones SQL y vuelve a iniciar el servicio. Si falla la instalacion o migracion, deja el servicio detenido e informa el commit anterior; no revierte automaticamente la base de datos. Conserva el .env local y los archivos operativos excluidos de Git.
+Descarga cambios, rechaza modificaciones locales o ramas divergentes, detiene el servicio, actualiza por fast-forward, instala dependencias, ejecuta las migraciones SQL y vuelve a iniciar el servicio. Comprueba que /api/health responda correctamente; si usás otro puerto, indicá -UrlSalud http://localhost:PUERTO/api/health. Si falla la instalacion o migracion, deja el servicio detenido e informa el commit anterior; no revierte automaticamente la base de datos. Conserva el .env local y los archivos operativos excluidos de Git.
 
 Git respalda el codigo. La base SQL, las fotos, los archivos de stock, los Excel y el .env requieren su propio respaldo. Antes de actualizar produccion, realizar el respaldo de la base SQL.

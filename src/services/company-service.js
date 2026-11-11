@@ -10,7 +10,6 @@ function normalizeFile(value) {
   if (normalized.split('\\').some(part => /[. ]$/.test(part)) || normalized.slice(2).includes(':')) throw new Error('La ruta contiene un nombre de archivo invalido');
   return normalized;
 }
-
 async function getCompany(id) {
   if (!Number.isInteger(id) || id <= 0) throw new Error('Empresa invalida');
   const pool = await getPool();

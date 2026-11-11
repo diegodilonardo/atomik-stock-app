@@ -30,6 +30,7 @@
         <button class="nav-item" data-type="ACCIONADO">Accionado</button>
         <button class="nav-item" data-type="SUELTOS">Sueltos</button>
         <button id="gridsButton" class="nav-item" type="button" title="Ir a Grillas de stock" aria-controls="gridsTitle">Grillas de stock</button>
+        <a id="fashionButton" class="nav-item hidden" href="/moda.html">Grillas de moda</a>
         <button id="usersButton" class="nav-item admin-only" type="button">Usuarios</button>
         <button id="companyButton" class="nav-item admin-only" type="button">Configuración de empresa</button>
       </nav>
@@ -41,6 +42,7 @@
         <div><p class="eyebrow" id="companyHeading">GRILLA</p><h1 id="viewTitle">Stock general</h1></div>
         <div class="actions">
           <button id="refreshButton" class="secondary admin-only">Actualizar stock</button>
+          <a id="downloadSimple" class="secondary button" href="/api/export/simple">Descargar stock simple</a>
           <a id="downloadView" class="primary button" href="/api/export/download">Descargar Excel de esta vista</a>
         </div>
       </header>
@@ -167,7 +169,7 @@
       <p id="companyCode" class="muted"></p>
       <p>El archivo de origen identifica a esta empresa. Los productos importados quedan asociados únicamente a ella.</p>
       <form id="companyForm">
-        <label>Ruta completa del TXT de stock<input id="companySource" required maxlength="400" placeholder="\\servidor\carpeta\stock.TXT"></label>
+        <label>Ruta completa del TXT de stock (opcional si usa solo Moda)<input id="companySource" maxlength="400" placeholder="\\servidor\carpeta\stock.TXT"></label>
         <label>Ruta completa del Excel de salida (opcional)<input id="companyExcel" maxlength="400" placeholder="\\servidor\carpeta\Stock.xlsx"></label>
         <label>Carpeta de fotos (opcional)<input id="companyImages" maxlength="380" placeholder="\\servidor\carpeta\fotos"></label>
         <label>Coeficiente de precio público de esta empresa<input id="companyFactor" type="number" min="0.0001" max="99999" step="0.0001" aria-describedby="companyFactorHelp" required></label>

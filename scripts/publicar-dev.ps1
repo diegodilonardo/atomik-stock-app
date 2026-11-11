@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $rutaDev = Split-Path -Parent $PSScriptRoot
 function Git-Dev {
     param([string[]]$Argumentos)
-    $salida = & git -C $rutaDev @Argumentos
+    $salida = & git -c "safe.directory=$($rutaDev.Replace('\', '/'))" -C $rutaDev @Argumentos
     if ($LASTEXITCODE -ne 0) { throw "Git fallo: $($Argumentos -join ' ')" }
     return $salida
 }

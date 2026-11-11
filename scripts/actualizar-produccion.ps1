@@ -1,12 +1,13 @@
 param(
     [string]$RutaApp = 'C:\atomik-stock-app',
-    [string]$Servicio = 'StockGrillasApp'
+    [string]$Servicio = 'StockGrillasApp',
+    [string]$UrlSalud = 'http://localhost:3200/api/health'
 )
 
 $ErrorActionPreference = 'Stop'
 function Ejecutar-Git {
     param([string[]]$Argumentos)
-    $resultado = & git -C $RutaApp @Argumentos
+    $resultado = & git -c "safe.directory=$($RutaApp.Replace('\', '/'))" -C $RutaApp @Argumentos
     if ($LASTEXITCODE -ne 0) { throw "Git falló: $($Argumentos -join ' ')" }
     return $resultado
 }
@@ -31,7 +32,7 @@ $anterior = Ejecutar-Git -Argumentos @('rev-parse', 'HEAD')
 Write-Host 'Descargando cambios...'
 Ejecutar-Git -Argumentos @('fetch', '--prune') | Out-Host
 $destino = Ejecutar-Git -Argumentos @('rev-parse', '--verify', '@{upstream}')
-& git -C $RutaApp merge-base --is-ancestor HEAD $destino
+& git -c "safe.directory=$($RutaApp.Replace('\', '/'))" -C $RutaApp merge-base --is-ancestor HEAD $destino
 if ($LASTEXITCODE -ne 0) { throw 'La rama local y la remota divergen. No se modificó la aplicación.' }
 if ($anterior -eq $destino) { Write-Host 'Producción ya está actualizada.'; return }
 $archivos = Ejecutar-Git -Argumentos @('diff', '--name-only', 'HEAD', $destino)
@@ -52,7 +53,16 @@ try {
     } finally { Pop-Location }
     Start-Service -Name $Servicio
     (Get-Service -Name $Servicio).WaitForStatus('Running', [TimeSpan]::FromSeconds(60))
-    Write-Host 'Actualización completada. Verificá el acceso a la aplicación y los registros del servicio.'
+    $responde = $false
+    for ($intento = 0; $intento -lt 12; $intento++) {
+        try {
+            $salud = Invoke-RestMethod -Uri $UrlSalud -TimeoutSec 5
+            if ($salud.status -eq 'ok') { $responde = $true; break }
+        } catch { }
+        Start-Sleep -Seconds 2
+    }
+    if (-not $responde) { throw "El servicio inició pero la aplicación no responde correctamente en $UrlSalud. Revisá los registros." }
+    Write-Host "Actualización completada: $destino. Aplicación disponible en $UrlSalud."
 } catch {
     Write-Warning "La actualización no terminó. No se realizó una reversión automática. Versión anterior: $anterior. Revisá el servicio y el error antes de reiniciarlo."
     throw

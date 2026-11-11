@@ -30,4 +30,11 @@ function groupSingles(rows) {
   for (const group of groups.values()) group.SIZES.sort((a, b) => compareSizes(a.label, b.label));
   return [...groups.values()];
 }
-module.exports = { groupSingles, compareSizes };
+function groupStockView(rows) {
+  return [...rows.filter(row => row.NIVEL !== 900), ...groupSingles(rows)].sort((a, b) =>
+    String(a.DMODC || '').localeCompare(String(b.DMODC || ''), 'es', { numeric: true }) ||
+    String(a.DCOLORC || '').localeCompare(String(b.DCOLORC || ''), 'es', { numeric: true }) ||
+    Number(b.NIVEL) - Number(a.NIVEL) ||
+    String(a.COD_ALFA || '').localeCompare(String(b.COD_ALFA || ''), 'es', { numeric: true }));
+}
+module.exports = { groupSingles, compareSizes, groupStockView };

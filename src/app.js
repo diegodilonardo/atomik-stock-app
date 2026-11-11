@@ -22,6 +22,7 @@ function createApp() {
   app.use('/api/users', authenticate, require('./routes/user-routes'));
   app.use('/api/company', authenticate, require('./routes/company-routes'));
   app.use('/api/grids', authenticate, require('./routes/grid-routes'));
+  app.use('/api/fashion', authenticate, require('./routes/fashion-routes'));
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Ruta inexistente' }));
   app.use((error, _req, res, _next) => {

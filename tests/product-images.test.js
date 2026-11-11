@@ -41,6 +41,10 @@ test('MIDING busca modelo mas color como alternativa sin modificar Atomik', () =
   assert.deepEqual(imageCandidates({ ...row, COD_ANIO: null }, company), ['0034501']);
   assert.deepEqual(imageCandidates({ ...row, COLORC: '../x' }, company), []);
 });
+
+test('GYD permite fotos por modelo y color sin año',()=>{
+  assert.equal(findImage({...row,COD_ANIO:'',COD_TEM:''},new Map([['0034501.jpg','0034501.jpg']]),{CODIGO:'70000'}),'0034501.jpg');
+});
 test('incrusta fotos en el Excel, reutiliza la imagen y conserva el nombre', async () => {
   const fs = require('node:fs/promises');
   const os = require('node:os');
@@ -129,3 +133,17 @@ test('incrusta fotos en el Excel, reutiliza la imagen y conserva el nombre', asy
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
 });
 
+
+test('busca fotos en subcarpetas y prioriza la carpeta principal',async()=>{
+  const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os');
+  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'stock-photos-'));
+  try {
+    await fs.mkdir(path.join(directory,'WAKE'));
+    await fs.writeFile(path.join(directory,'WAKE','27115032305.jpg'),'photo');
+    await fs.writeFile(path.join(directory,'WAKE','root.png'),'nested');
+    await fs.writeFile(path.join(directory,'root.png'),'root');
+    const index=await require('../src/services/product-images').loadImageIndex(directory);
+    assert.equal(index.get('root.png'),'root.png');
+    assert.equal(findImage({COD_ANIO:'27',COD_TEM:'1',MODC:'150323',COLORC:'05'},index,{CODIGO:'70000'}),path.join('WAKE','27115032305.jpg'));
+  } finally { await fs.rm(directory,{recursive:true,force:true}); }
+});

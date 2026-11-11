@@ -147,6 +147,8 @@ async function showApp() {
   $('#userName').textContent = state.user.name; $('#userRole').textContent = state.user.isSuperAdmin ? 'Superadministrador' : state.user.role;
 
   document.body.classList.toggle('is-consultation', state.user.role !== 'ADMIN');
+  $('#fashionButton').classList.toggle('hidden', !state.user.fashionEnabled);
+  $('#fashionButton').href = '/moda.html' + (viewCompanyId ? '?company=' + encodeURIComponent(viewCompanyId) : '');
 
   $$('.admin-only').forEach((element) => element.classList.toggle('hidden', state.user.role !== 'ADMIN'));
 
@@ -484,6 +486,7 @@ async function loadStock() {
   }
 
   $('#downloadView').href = '/api/export/download?' + params;
+  $('#downloadSimple').href = '/api/export/simple?' + params;
 
   params.set('page', state.page); params.set('pageSize', state.pageSize);
 
@@ -503,9 +506,9 @@ async function loadStock() {
 
   const to = Math.min(state.page * state.pageSize, state.total);
 
-  $('#pageInfo').textContent = `${from}–${to} de ${integer(state.total)}${result.grouped ? ' modelos y colores con stock' : ''}`;
+  $('#pageInfo').textContent = `${from}–${to} de ${integer(state.total)}${result.grouped ? ' modelos y colores con stock' : result.groupedSingles ? ' filas (sueltos agrupados)' : ''}`;
 
-  $('#sizeColumnTitle').textContent = result.grouped ? 'Talles y stock' : 'Curva / talle';
+  $('#sizeColumnTitle').textContent = result.grouped ? 'Talles y stock' : result.groupedSingles ? 'Curva / talles y stock' : 'Curva / talle';
 
   $('#prevPage').disabled = state.page <= 1; $('#nextPage').disabled = to >= state.total;
 
@@ -767,7 +770,7 @@ $('#companyButton').addEventListener('click', async () => {
 
     $('#companyRetention').value = data.RETENTION_DAYS;
 
-    $('#companyError').textContent = '';
+    $('#companyError').textContent = data.fashionWarning || '';
 
     $('#companyModal').classList.remove('hidden');
 

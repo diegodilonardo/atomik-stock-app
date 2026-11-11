@@ -1,5 +1,5 @@
 (() => {
-  const links = ['downloadView', 'downloadGrid'].map(id => document.getElementById(id));
+  const links = ['downloadView', 'downloadGrid', 'downloadSimple'].filter(id => document.getElementById(id)).map(id => document.getElementById(id));
   const panel = document.getElementById('downloadProgress');
   const label = document.getElementById('downloadStatus');
   const bar = document.getElementById('downloadBar');

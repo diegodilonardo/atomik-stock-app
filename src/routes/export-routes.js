@@ -9,6 +9,17 @@ const { getGrid } = require('../services/grid-service');
 
 const router = express.Router();
 
+router.get('/simple', async (req, res, next) => {
+  try {
+    const { data } = await queryStock(req.company, normalizeRules(req.query));
+    const book = await require('../services/simple-stock-excel').buildSimpleStock(req.company, data);
+    const buffer = await book.xlsx.writeBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(`Stock-simple-${req.company.CODIGO}.xlsx`)}`);
+    res.send(Buffer.from(buffer));
+  } catch (error) { next(error); }
+});
+
 router.get('/download', async (req, res, next) => {
   try {
     const grid = req.query.gridId ? await getGrid(req.user.companyId, req.query.gridId) : null;

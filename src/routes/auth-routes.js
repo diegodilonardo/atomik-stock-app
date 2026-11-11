@@ -23,6 +23,7 @@ router.post('/login', async (req, res, next) => {
     }
     const payload = { id: user.ID_USER, username: user.USERNAME, name: user.FULL_NAME, role: user.ROLE,
       isSuperAdmin: Boolean(user.IS_SUPERADMIN),
+      fashionEnabled: require('../services/fashion-source').fashionEnabled(user.CODIGO),
       companyId: user.ID_EMPRESA, companyName: user.NOMBRE, companyCode: user.CODIGO };
     const token = jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
     res.cookie('atomik_session', token, {
@@ -40,7 +41,7 @@ router.post('/logout', (_req, res) => {
   res.status(204).end();
 });
 
-router.get('/me', authenticate, (req, res) => res.json({ user: req.user }));
+router.get('/me', authenticate, (req, res) => res.json({ user: { ...req.user, fashionEnabled: require('../services/fashion-source').fashionEnabled(req.company.CODIGO) } }));
 
 router.get('/companies', authenticate, async (req, res, next) => {
   try {

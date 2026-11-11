@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grillas de moda</title><link rel="stylesheet" href="/css/styles.css"><link rel="stylesheet" href="/css/moda.css"></head>
+<body><main class="fashion-shell">
+  <header class="topbar"><div><p id="fashionCompany" class="eyebrow">COLECCIONES</p><h1>Grillas de moda</h1></div><a id="back" class="secondary button" href="/">Volver a stock</a></header>
+  <p>Elegí año y temporada, seleccioná productos y asignales una categoría. Cada producto aparece en una solapa.</p>
+  <p id="status" role="status" aria-live="polite">Cargando maestro…</p>
+  <div id="workspace" hidden>
+  <section class="panel fashion-controls">
+    <label>Grilla guardada<select id="saved"><option value="">Nueva grilla</option></select></label>
+    <label>Nombre<input id="name" maxlength="150" placeholder="Ej.: Moda verano 27"></label>
+    <button id="saveNew" class="secondary editor">Guardar como nueva</button><button id="save" class="secondary editor" disabled>Guardar cambios</button>
+    <button id="export" class="primary">Descargar Excel</button><button id="refresh" class="secondary editor">Actualizar maestro</button>
+    <button id="archive" class="secondary editor" disabled>Anular grilla</button>
+  </section>
+  <details class="panel fashion-columns">
+    <summary>Columnas del Excel</summary>
+    <p>Elegí Mostrar, Ocultar o No incluir para cada campo y usá ↑ / ↓ para ordenar los campos. Los ocultos conservan su posición. Los campos ocultos se conservan en el Excel y siguen disponibles para los cálculos, RESUMEN y PEDIDO. No incluir elimina la columna del Excel; los campos necesarios para cálculos y PEDIDO solo pueden ocultarse. Pedido siempre queda visible. La configuración se aplica a todas las categorías y se guarda con la grilla.</p>
+    <div id="fashionColumns" aria-label="Campos y orden del Excel"></div>
+    <button id="resetColumns" type="button" class="secondary">Restablecer formato actual</button>
+    <p id="columnsPreview" aria-live="polite"></p>
+  </details>
+  <details class="panel fashion-sort">
+    <summary>Orden de los productos</summary>
+    <p>Por defecto: Modelo → Color → Curva. Para personalizarlo, elegí los criterios en orden de prioridad y su dirección.</p>
+    <label class="sort-toggle"><input type="checkbox" id="customSort"> Usar orden personalizado</label>
+    <div id="sortRules" class="sort-rules" hidden></div>
+    <p>Categoría agrupa los productos en pantalla; el Excel conserva una solapa por categoría y ordena sus productos con los demás criterios.</p>
+  </details>
+  <section class="panel fashion-filters">
+    <div class="fashion-filter-field"><span>Año</span><div id="years"></div></div>
+    <div class="fashion-filter-field"><span>Temporada</span><div id="seasons"></div></div>
+    <div class="fashion-filter-field"><span>Marca</span><div id="brands"></div></div>
+    <div class="fashion-filter-field"><span>Licencia</span><div id="licenses"></div></div>
+    <div class="fashion-filter-field"><span>Rubro</span><div id="rubros"></div></div>
+    <div class="fashion-filter-field"><span>Nivel / tipo de módulo</span><div id="levels"></div></div>
+    <div class="fashion-filter-field"><span>Clasificación (detalle)</span><div id="classifications"></div></div>
+    <div class="fashion-filter-field"><span>Edad</span><div id="ages"></div></div>
+    <div class="fashion-filter-field"><span>Sexo</span><div id="sexes"></div></div>
+    <div class="fashion-filter-field"><span>Color</span><div id="colors"></div></div>
+    <div class="fashion-filter-field"><span>Disciplina</span><div id="disciplines"></div></div>
+    <label>Buscar<input id="search" placeholder="Modelo, color o código"></label>
+    <label>Ver<select id="scope"><option value="all">Todos</option><option value="assigned">Asignados</option><option value="unassigned">Sin asignar</option><option>DISCIPLINA</option><option>HOMBRE</option><option>DAMA</option><option>KIDS</option><option>SUELTOS</option><option>ACCESORIOS</option></select></label>
+    <small id="filterHelp">Seleccioná al menos un año y una temporada. Marcá una o varias opciones con las casillas. Podés cambiar los filtros y sumar productos de distintos años y temporadas a la misma grilla.</small>
+    <small id="extraFilterHelp">Marca, licencia, rubro, nivel, clasificación, edad, sexo, color y disciplina: sin selección se muestran todos. Podés marcar varios valores. Estos filtros ayudan a buscar; los productos ya asignados a la grilla se conservan.</small>
+    <button id="clearExtraFilters" class="secondary" type="button">Limpiar filtros adicionales</button>
+  </section>
+  <section class="panel">
+    <div class="fashion-actions"><div id="counts" role="group" aria-label="Ver productos de la grilla"></div><span id="checkedCount"></span>
+      <label>Asignar a<select id="category"><option>DISCIPLINA</option><option>HOMBRE</option><option>DAMA</option><option>KIDS</option><option>SUELTOS</option><option>ACCESORIOS</option></select></label>
+      <button id="assign" class="secondary">Asignar seleccionados</button><button id="remove" class="secondary">Quitar de la grilla</button>
+    </div>
+    <p id="selectionViewHint" class="fashion-help" role="status" hidden></p>
+    <p class="fashion-help">Precios mayorista y público por par. El pedido se ingresa en módulos: subtotal = precio mayorista por par × pares por módulo × módulos pedidos. Se admiten precios 0. Stock corresponde al valor informado en el maestro.</p>
+    <div class="table-wrap"><table><thead><tr><th><input id="checkAll" type="checkbox" aria-label="Seleccionar página"></th><th>Año</th><th>Temporada</th><th>Modelo</th><th>Color</th><th>Curva / talle</th><th>Pares</th><th>Stock</th><th>Precio mayorista</th><th>Precio público</th><th>Código alfa</th><th>Solapa</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="pagination"><span id="pageInfo"></span><div><button id="prev" class="secondary">Anterior</button><button id="next" class="secondary">Siguiente</button></div></div>
+  </section>
+  </div>
+</main><script src="/js/multi-select.js"></script><script src="/js/fashion-columns.js"></script><script src="/js/fashion-sort.js"></script><script src="/js/moda.js"></script></body></html>

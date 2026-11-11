@@ -2,12 +2,11 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { imageSize } = require('image-size');
 
-function imagePlacement(sheet, rowNumber, dimensions, rowSpan = 1) {
+function imagePlacement(sheet, rowNumber, dimensions, rowSpan = 1, padding = 4) {
   // Excel column widths are character units; drawing extents use pixels at 96 dpi.
   const width = sheet.getColumn(2).width || 8.43;
   const cellWidth = width < 1 ? Math.floor(width * 12) : Math.floor(width * 7 + 5);
   const cellHeight = Array.from({ length: rowSpan }, (_, i) => (sheet.getRow(rowNumber + i).height || 15) * 96 / 72).reduce((sum, height) => sum + height, 0);
-  const padding = 4;
   const scale = Math.min((cellWidth - padding * 2) / dimensions.width, (cellHeight - padding * 2) / dimensions.height);
   const imageWidth = dimensions.width * scale;
   const imageHeight = dimensions.height * scale;
@@ -27,16 +26,24 @@ function imageCandidates(row, company = {}) {
   return [...new Set([
     ...(year && season ? [year + season + model + color] : []),
     ...(year ? [year + model + color] : []),
-    ...(String(company.CODIGO) === '3000' ? [model + color] : [])
+    ...(['3000','70000'].includes(String(company.CODIGO)) ? [model + color] : [])
   ])];
 }
 
 async function loadImageIndex(directory) {
   const index = new Map();
   if (!directory) return index;
-  const entries = await fs.readdir(directory, { withFileTypes: true });
-  for (const entry of entries) {
-    if (entry.isFile() && /\.(jpg|jpeg|png)$/i.test(entry.name)) index.set(entry.name.toLowerCase(), entry.name);
+  const pending = [''];
+  for (let i = 0; i < pending.length; i++) {
+    const relative = pending[i];
+    const entries = await fs.readdir(path.join(directory, relative), { withFileTypes: true });
+    entries.sort((a,b)=>a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      const filename = path.join(relative, entry.name);
+      if (entry.isDirectory()) pending.push(filename);
+      else if (entry.isFile() && /\.(jpg|jpeg|png)$/i.test(entry.name) && !index.has(entry.name.toLowerCase()))
+        index.set(entry.name.toLowerCase(), filename);
+    }
   }
   return index;
 }
@@ -51,20 +58,24 @@ function findImage(row, index, company = {}) {
   return null;
 }
 
-async function embedProductImages(workbook, sheet, rows, directory, index, cache, company = {}) {
+async function embedProductImages(workbook, sheet, rows, directory, index, cache, company = {}, options = {}) {
   for (const [position, row] of rows.entries()) {
     const filename = findImage(row, index, company);
     if (!filename) continue;
     if (!cache.has(filename)) {
       const buffer = await fs.readFile(path.join(directory, filename));
       const extension = /\.png$/i.test(filename) ? 'png' : 'jpeg';
-      cache.set(filename, { id: workbook.addImage({ buffer, extension }), dimensions: imageSize(buffer) });
+      const embedded = options.optimize
+        ? await require('./excel-image-optimizer').optimizeExcelImage(buffer, extension)
+        : { buffer, extension };
+      // Keep original dimensions for identical cell placement, including padding.
+      cache.set(filename, { id: workbook.addImage(embedded), dimensions: imageSize(buffer) });
     }
     const excelRow = row.EXCEL_IMAGE_ROW || position + 3;
     sheet.getCell(excelRow, 2).value = null;
     if (!row.EXCEL_IMAGE_ROW) sheet.getCell(excelRow, 20).value = filename;
     const cached = cache.get(filename);
-    sheet.addImage(cached.id, imagePlacement(sheet, excelRow, cached.dimensions, row.EXCEL_IMAGE_SPAN || 1));
+    sheet.addImage(cached.id, imagePlacement(sheet, excelRow, cached.dimensions, row.EXCEL_IMAGE_SPAN || 1, options.padding ?? 4));
   }
 }
 

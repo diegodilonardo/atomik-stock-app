@@ -9,7 +9,7 @@ async function main() {
   const transaction = new sql.Transaction(pool);
   try {
     await transaction.begin();
-    for (const file of ['001_schema.sql', '002_multiempresa.sql', '003_product_images.sql', '004_optional_stock_fields.sql', '005_saved_grids.sql', '006_grid_schedule.sql', '007_licenses.sql', '008_stock_brand.sql', '009_price_lists.sql', '010_unique_usernames.sql', '011_superadmin.sql', '012_atomik_company_code.sql', '013_cross_company_actors.sql', '014_price_factors.sql', '015_factor_dimensions.sql', '016_factor_lists.sql']) {
+    for (const file of ['001_schema.sql', '002_multiempresa.sql', '003_product_images.sql', '004_optional_stock_fields.sql', '005_saved_grids.sql', '006_grid_schedule.sql', '007_licenses.sql', '008_stock_brand.sql', '009_price_lists.sql', '010_unique_usernames.sql', '011_superadmin.sql', '012_atomik_company_code.sql', '013_cross_company_actors.sql', '014_price_factors.sql', '015_factor_dimensions.sql', '016_factor_lists.sql', '017_fashion_grids.sql']) {
       const source = await fs.readFile(path.join(__dirname, '..', 'sql', file), 'utf8');
       for (const batch of source.split(/^GO\s*$/mi).filter((part) => part.trim())) {
         await new sql.Request(transaction).batch(batch);

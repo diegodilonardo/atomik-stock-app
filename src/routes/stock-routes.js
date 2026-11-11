@@ -44,12 +44,14 @@ router.get('/', async (req, res, next) => {
       return res.status(400).json({ error: 'Pagina invalida' });
     }
     const rules = req.query.gridId ? (await getGrid(req.user.companyId, req.query.gridId)).rules : normalizeRules(req.query);
-    const grouped = req.query.groupSizes === '1' && (rules.type === 'SUELTOS' || (rules.level.length === 1 && rules.level[0] === '900'));
+    const grouped = req.query.groupSizes === '1' && (!rules.type || rules.type === 'SUELTOS')
+      && (!rules.level.length || rules.level.includes('900'));
     let result;
     if (grouped) {
-      const raw = await queryStock(req.company, { ...rules, positiveStock: true });
-      const groups = require('../services/single-stock').groupSingles(raw.data);
-      result = { data: groups.slice((page - 1) * pageSize, page * pageSize), total: groups.length, grouped: true };
+      const raw = await queryStock(req.company, rules);
+      const groups = require('../services/single-stock').groupStockView(raw.data);
+      const onlySingles = rules.type === 'SUELTOS' || (rules.level.length === 1 && rules.level[0] === '900');
+      result = { data: groups.slice((page - 1) * pageSize, page * pageSize), total: groups.length, grouped: onlySingles, groupedSingles: true };
     } else result = await queryStock(req.company, rules, { page, pageSize });
     res.json({ ...result, page, pageSize });
   } catch (error) { next(error); }

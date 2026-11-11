@@ -72,3 +72,20 @@ tr.possible-actioned td{background:#fff3cd}tr.possible-actioned:hover td{backgro
 
 .grid-manager button,.grid-manager a.button{box-sizing:border-box;min-height:46px;width:210px;max-width:100%;padding:11px 16px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;line-height:1.3;text-align:center}.grid-batch-dialog{width:min(620px,92vw);max-height:85vh;overflow:auto;border:0;border-radius:16px;padding:24px;color:var(--ink)}.grid-batch-dialog::backdrop{background:#102a43aa}.batch-options{display:grid;gap:8px;margin-top:16px;max-height:45vh;overflow:auto}.batch-options label{display:flex;gap:10px;align-items:center;padding:10px;background:#f0f6fb;border-radius:8px}.batch-options input{flex-shrink:0}.grid-batch-dialog .grid-controls button{min-height:46px;flex:1}.grid-manager button:disabled{cursor:default}
 
+/* Compact filter and action controls, scoped to stock browsing. */
+.stock-filters{gap:10px;padding:12px 14px}
+.stock-filters .filter-field,.stock-filters>label:not(.stock-positive){flex:1 1 145px;gap:5px}
+.stock-filters .filter-field>label{flex:initial}
+.stock-filters select,.stock-filters .multi-picker summary{min-height:36px;padding:8px 10px;border-radius:8px;font-size:12px;line-height:18px}
+.stock-filters .multi-picker summary{white-space:normal}
+.stock-filters .stock-positive{padding:7px 0;min-height:36px}
+.stock-filters small{font-size:11px;line-height:1.4}
+.stock-filters .multi-options label{padding:7px 4px;font-size:13px}
+.stock-panel .toolbar{padding:12px 14px;gap:10px}
+.stock-panel .toolbar .bulk{align-items:center;flex-wrap:wrap;gap:8px}
+.stock-panel .toolbar .search input{height:36px;padding:8px 10px 8px 34px;font-size:13px;border-radius:8px}
+.stock-panel .toolbar .search span{left:12px}
+.stock-panel .toolbar #selectionCount{font-size:12px}
+.stock-panel .toolbar button,.stock-filters>button,.stock-panel .pagination button{min-height:36px;padding:8px 12px;font-size:12px;line-height:20px;border-radius:8px}
+.stock-panel .toolbar button{min-width:120px}
+@media(max-width:680px){.stock-filters .filter-field,.stock-filters>label:not(.stock-positive){flex-basis:calc(50% - 10px)}.stock-panel .toolbar button{min-width:0;flex:1}.stock-panel .toolbar #selectionCount{flex-basis:100%}}
