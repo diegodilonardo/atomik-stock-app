@@ -62,7 +62,7 @@ async function buildFashionWorkbook(company, selection, products) {
       await embedProductImages(workbook, sheet, rows.map((row, i) => ({ ...row, EXCEL_IMAGE_ROW: i + 3 })), company.IMAGE_DIRECTORY, index, cache, company, { optimize:true, padding:10 });
     } else sheet.getCell('B3').value = 'Sin productos asignados';
   }
-  await require('./fashion-excel-format').formatAndProtectFashion(workbook, counts);
+  await require('./fashion-excel-format').formatAndProtectFashion(workbook, counts, valid.protectExcel);
   const defaultColumns = require('../../public/js/fashion-columns').defaults;
   if (valid.columnOrder.some((key,i)=>key!==defaultColumns[i]) || valid.excludedColumns.length || valid.columns.length !== defaultColumns.length || valid.columns.some((key,i)=>key!==defaultColumns[i])) {
     require('./fashion-layout').applyFashionLayout(workbook, valid.columns, counts, valid.excludedColumns, valid.columnOrder);

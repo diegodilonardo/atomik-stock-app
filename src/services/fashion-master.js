@@ -94,8 +94,9 @@ function validateSelection(body, products) {
     seen.add(item.id);
     return { id: item.id, category };
   });
+  if(body.protectExcel !== undefined && typeof body.protectExcel !== 'boolean') throw invalid('La opción de protección del Excel debe ser verdadera o falsa');
   const columns = require('../../public/js/fashion-columns').normalize(body.columns);
-  return { name: body.name.trim(), filters: { years: [...new Set(filters.years)], seasons: [...new Set(filters.seasons)] }, items, columns, columnOrder: require('../../public/js/fashion-columns').normalizeOrder(body.columnOrder, columns), excludedColumns: require('../../public/js/fashion-columns').normalizeExcluded(body.excludedColumns, columns), sort: require('../../public/js/fashion-sort').normalize(body.sort) };
+  return { name: body.name.trim(), filters: { years: [...new Set(filters.years)], seasons: [...new Set(filters.seasons)] }, items, columns, protectExcel: body.protectExcel !== false, columnOrder: require('../../public/js/fashion-columns').normalizeOrder(body.columnOrder, columns), excludedColumns: require('../../public/js/fashion-columns').normalizeExcluded(body.excludedColumns, columns), sort: require('../../public/js/fashion-sort').normalize(body.sort) };
 }
 
 module.exports = { CATEGORIES, parseMaster, loadMaster, validateSelection, invalid };

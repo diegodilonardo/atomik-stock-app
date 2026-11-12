@@ -198,3 +198,17 @@ test('Total de pares multiplica pedido por pares y sigue el orden personalizado'
   assert.equal(normal.getWorksheet('DAMA').getCell('S3').formula,'N3*K3');
   assert.equal(normal.getWorksheet('DAMA').getCell('S4').formula,'SUM(S3:S3)');
 });
+
+test('exporta sin protección cuando se desmarca y conserva fórmulas y columnas',async()=>{
+  const {validateSelection}=require('../src/services/fashion-master');
+  assert.equal(validateSelection(selection,[product]).protectExcel,true);
+  assert.throws(()=>validateSelection({...selection,protectExcel:'false'},[product]),/protección/);
+  const saved=JSON.parse(JSON.stringify(validateSelection({...selection,protectExcel:false,columns:['order','subtotal']},[product])));
+  assert.equal(saved.protectExcel,false);
+  const book=await buildFashionWorkbook({},saved,[product]);
+  const loaded=new ExcelJS.Workbook();await loaded.xlsx.load(await book.xlsx.writeBuffer());
+  for(const sheet of loaded.worksheets)assert.ok(!sheet.sheetProtection?.sheet);
+  assert.ok(loaded.getWorksheet('DAMA').getCell('C3').formula);
+  assert.ok(loaded.getWorksheet('RESUMEN').getCell('G6').formula);
+  assert.ok(loaded.getWorksheet('PEDIDO').getCell('C2').formula);
+});

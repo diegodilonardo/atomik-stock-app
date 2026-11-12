@@ -153,10 +153,11 @@
     $('export').disabled = busy || !assignments.size;
     $('assign').disabled = $('remove').disabled = busy || !checked.size;
   }
-  function payload() { return { name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], version:current?.version, sort:currentSort() }; }
+  function payload() { return { name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
   function gridOptions() { setOptions('saved', [['','Nueva grilla'],...grids.map(g=>[String(g.id),g.name])], [String(current?.id || '')]); }
   function openGrid(grid) {
     current = grid; assignments.clear(); checked.clear();
+    $('protectExcel').checked=grid?.protectExcel !== false;
     restoreColumns(grid?.columns, grid?.excludedColumns, grid?.columnOrder);
     const savedSort=FashionSort.normalize(grid?.sort);
     $('customSort').checked=!!savedSort;
@@ -207,6 +208,7 @@
     dirty=true;renderColumns();
     $('fashionColumns').querySelector(`[data-key="${button.dataset.key}"][data-move="${button.dataset.move}"]`)?.focus();
   };
+  $('protectExcel').onchange=()=>{dirty=true;};
   $('resetColumns').onclick=()=>{restoreColumns();dirty=true;};
   $('rows').onchange = e => { if(e.target.dataset.id) { if(e.target.checked) checked.add(e.target.dataset.id); else checked.delete(e.target.dataset.id); render(); } };
   $('selectFiltered').onclick = () => { if(busy)return; for(const product of visible()) checked.add(product.id); render(); };

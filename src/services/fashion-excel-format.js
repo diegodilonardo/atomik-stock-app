@@ -50,7 +50,7 @@ function configureFashionSummary(workbook, counts) {
   return sheet;
 }
 
-async function formatAndProtectFashion(workbook, counts) {
+async function formatAndProtectFashion(workbook, counts, protectExcel = true) {
   workbook._themes = clone(profile.themes);
   const reference = profile.sheets.MODULOS;
   // Map each Moda column to its equivalent style in the stock grid.
@@ -90,7 +90,7 @@ async function formatAndProtectFashion(workbook, counts) {
     if (CATEGORIES.includes(sheet.name)) {
       for (let row = 3; row <= counts[sheet.name] + 2; row++) sheet.getCell(row, 14).protection = { locked:false };
     }
-    await sheet.protect(password, { selectLockedCells:true, selectUnlockedCells:true,
+    if (protectExcel) await sheet.protect(password, { selectLockedCells:true, selectUnlockedCells:true,
       autoFilter:true, formatCells:false, formatColumns:false, formatRows:false,
       insertColumns:false, insertRows:false, deleteColumns:false, deleteRows:false,
       sort:false, objects:false, scenarios:false });

@@ -49,3 +49,6 @@
 
 .fashion-filters .fashion-stock-filter { display:flex; align-items:center; gap:8px; flex:0 1 auto; min-height:38px; color:#1769aa; }
 .fashion-stock-filter input[type=checkbox] { width:16px; height:16px; margin:0; accent-color:#1769aa; }
+
+.fashion-controls .fashion-export-lock { display:flex; align-items:center; gap:8px; flex:0 1 auto; min-height:38px; }
+.fashion-export-lock input { width:16px; height:16px; margin:0; accent-color:#1769aa; }
