@@ -88,3 +88,14 @@ test('permite guardar la eliminación de la última plantilla sin productos',asy
  assert.deepEqual(saved.items,[]);
  await assert.rejects(buildFashionWorkbook({},saved,[]),/Asigná productos/);
 });
+
+test('selector deduplica aplicaciones y distingue distribuciones con el mismo nombre',()=>{
+ const {reusableTemplates}=require('../public/js/fashion-curves');
+ const template={id:'template',name:'CURVA MUJER',distribution:sizes.map((size,i)=>({size,quantity:qty[i]}))};
+ const applied={...selection.curves[0],name:'CURVA MUJER'};
+ const list=reusableTemplates([template],[applied,{...applied,id:'other'}],products);
+ assert.equal(list.length,1);assert.equal(list[0].id,'template');assert.equal(list[0].label,'CURVA MUJER');
+ const distinct=reusableTemplates([template,{...template,id:'different',distribution:[{size:'S',quantity:2}]}],[applied],products);
+ assert.equal(distinct.length,2);assert.notEqual(distinct[0].label,distinct[1].label);
+ assert.equal(reusableTemplates([],[applied,{...applied,id:'other'}],products).length,1);
+});

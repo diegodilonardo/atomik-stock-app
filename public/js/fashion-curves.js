@@ -79,6 +79,21 @@
       return {key,product:group[0],parts,reasons};
     });
   }
-  const api={eligible,size,identity,validate,materialize,planBatch,validateTemplates};
+  function reusableTemplates(templates,curves,products){
+    const byId=new Map(products.map(p=>[p.id,p])),seen=new Set(),result=[];
+    const sort=typeof module==='object'&&module.exports?require('./fashion-sort'):root.FashionSort;
+    const normalizeSize=value=>text(value).toUpperCase().replace(/^XXL$/,'2X').replace(/^XXXL$/,'3X').replace(/^([2-5])XL$/,'$1X');
+    for(const candidate of [...templates,...curves.map(c=>({...c,id:'applied:'+c.id}))]){
+      const distribution=candidate.distribution || candidate.parts.map(part=>({size:size(byId.get(part.id)||{}),quantity:part.quantity}));
+      if(distribution.some(p=>!p.size))continue;
+      const normalized=distribution.map(p=>({size:normalizeSize(p.size),quantity:p.quantity})).sort((a,b)=>sort.compareSizes(a.size,b.size));
+      const key=JSON.stringify([text(candidate.name).toUpperCase(),normalized]);
+      if(seen.has(key))continue;
+      seen.add(key);result.push({...candidate,distribution:normalized});
+    }
+    return result.map(c=>({...c,label:result.filter(other=>text(other.name).toUpperCase()===text(c.name).toUpperCase()).length>1
+      ? c.name+' — '+c.distribution.map(p=>p.size+'×'+p.quantity).join(' / ') : c.name}));
+  }
+  const api={eligible,size,identity,validate,materialize,planBatch,validateTemplates,reusableTemplates};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.FashionCurves=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

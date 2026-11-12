@@ -230,7 +230,7 @@
   $('remove').onclick = () => { if(!allowCurveEdit())return; curves=curves.filter(c=>!c.parts.every(p=>checked.has(p.id)));for(const id of checked) assignments.delete(id);checked.clear();dirty=true;render(); };
   const batchModels=new MultiSelect($('batchModels'),'Modelo','Todos los modelos asignados');
   const batchColors=new MultiSelect($('batchColors'),'Color','Todos los colores asignados');
-  function availableTemplates(){return [...curveTemplates,...curves.map(c=>({...c,id:'applied:'+c.id}))];}
+  function availableTemplates(){return FashionCurves.reusableTemplates(curveTemplates,curves,products);}
   function assignedProducts(){return products.filter(p=>assignments.has(p.id));}
   function addTemplateRow(){
     const row=document.createElement('div');row.className='fashion-template-row';
@@ -260,7 +260,7 @@
   function renderBatch(){
     $('savedCurveTemplates').innerHTML=curveTemplates.map(c=>'<div class="fashion-curve-card"><strong>'+escape(c.name)+'</strong><p>'+escape(c.distribution.map(p=>p.size+' × '+p.quantity).join(' / '))+'</p><button type="button" class="secondary" data-delete-template="'+escape(c.id)+'" '+(busy||!admin?'disabled':'')+'>Eliminar curva</button></div>').join('') || '<p>No hay curvas reutilizables guardadas.</p>';
     const previous=$('batchTemplate').value;
-    $('batchTemplate').innerHTML='<option value="">Elegir curva guardada</option>'+availableTemplates().map(c=>'<option value="'+escape(c.id)+'">'+escape(c.name)+'</option>').join('');
+    $('batchTemplate').innerHTML='<option value="">Elegir curva guardada</option>'+availableTemplates().map(c=>'<option value="'+escape(c.id)+'">'+escape(c.label)+'</option>').join('');
     $('batchTemplate').value=availableTemplates().some(c=>c.id===previous)?previous:'';
     const template=availableTemplates().find(c=>c.id===$('batchTemplate').value);
     const assigned=assignedProducts();
