@@ -14,7 +14,7 @@ router.post('/login', async (req, res, next) => {
     if (!username || username.length > 80 || !password) return res.status(400).json({ error: 'Ingrese usuario y contraseña' });
     const pool = await getPool();
     const result = await pool.request().input('username', sql.VarChar(80), username)
-      .query(`SELECT U.ID_USER,U.USERNAME,U.FULL_NAME,U.PASSWORD_HASH,U.ROLE,U.IS_SUPERADMIN,U.ID_EMPRESA,E.NOMBRE,E.CODIGO
+      .query(`SELECT U.ID_USER,U.USERNAME,U.FULL_NAME,U.PASSWORD_HASH,U.ROLE,U.IS_SUPERADMIN,U.ID_EMPRESA,E.NOMBRE,E.CODIGO,E.FASHION_FTP_PATH
         FROM dbo.USERS U JOIN dbo.EMPRESAS E ON E.ID_EMPRESA=U.ID_EMPRESA
         WHERE U.USERNAME=@username AND U.ACTIVE=1 AND E.ACTIVE=1`);
     const user = result.recordset[0];
@@ -23,7 +23,7 @@ router.post('/login', async (req, res, next) => {
     }
     const payload = { id: user.ID_USER, username: user.USERNAME, name: user.FULL_NAME, role: user.ROLE,
       isSuperAdmin: Boolean(user.IS_SUPERADMIN),
-      fashionEnabled: require('../services/fashion-source').fashionEnabled(user.CODIGO),
+      fashionEnabled: require('../services/fashion-source').fashionEnabled(user),
       companyId: user.ID_EMPRESA, companyName: user.NOMBRE, companyCode: user.CODIGO };
     const token = jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
     res.cookie('atomik_session', token, {
@@ -41,7 +41,7 @@ router.post('/logout', (_req, res) => {
   res.status(204).end();
 });
 
-router.get('/me', authenticate, (req, res) => res.json({ user: { ...req.user, fashionEnabled: require('../services/fashion-source').fashionEnabled(req.company.CODIGO) } }));
+router.get('/me', authenticate, (req, res) => res.json({ user: { ...req.user, fashionEnabled: require('../services/fashion-source').fashionEnabled(req.company) } }));
 
 router.get('/companies', authenticate, async (req, res, next) => {
   try {

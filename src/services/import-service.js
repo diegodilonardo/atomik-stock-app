@@ -44,7 +44,7 @@ STOCK,DEPOSITO,NIVEL,TALLC,DISCIPLINA,DTOESP,P_BAS,ESTADIO,COLORC,COD_TEM,COD_AN
 async function createImport(pool, metadata, triggeredBy, userId, company) {
   const result = await pool.request()
     .input('company', sql.Int, company.ID_EMPRESA)
-    .input('source', sql.NVarChar(1000), company.SOURCE_FILE)
+    .input('source', sql.NVarChar(1000), company.STOCK_FTP_PATH || company.SOURCE_FILE)
     .input('modified', sql.DateTime2, metadata?.mtime || null)
     .input('size', sql.BigInt, metadata?.size || null)
     .input('triggeredBy', sql.VarChar(20), triggeredBy)
@@ -64,19 +64,21 @@ async function markError(pool, importId, error) {
 
 async function importStock({ companyId, triggeredBy = 'CRON', userId = null } = {}) {
   const company = await getCompany(companyId);
-  if (!company.SOURCE_FILE) throw new Error('La empresa no tiene un archivo de stock asociado');
+  if (!company.SOURCE_FILE && !company.STOCK_FTP_PATH) throw new Error('La empresa no tiene un archivo de stock asociado');
   if (running.has(companyId)) throw new Error('Ya existe una importacion de stock en curso para esta empresa');
   running.add(companyId);
+  let importedSource;
   let importId;
   let pool;
   try {
     pool = await getPool();
     importId = await createImport(pool, null, triggeredBy, userId, company);
-    const metadata = await fs.stat(company.SOURCE_FILE);
+    importedSource=await require('./ftp-stock').stockSource(company);
+    const metadata = await fs.stat(importedSource.file);
     await pool.request().input('id', sql.BigInt, importId)
       .input('modified', sql.DateTime2, metadata.mtime).input('size', sql.BigInt, metadata.size)
       .query('UPDATE dbo.STOCK_IMPORTS SET SOURCE_MODIFIED_AT=@modified,SOURCE_SIZE_BYTES=@size WHERE ID_IMPORT=@id');
-    const { stock: rows, prices } = splitStockPrices(await parseStockFile(company.SOURCE_FILE));
+    const { stock: rows, prices } = splitStockPrices(await parseStockFile(importedSource.file));
     const stockTotal = rows.reduce((total, row) => total + row.stock * row.pares, 0);
 
     const transaction = new sql.Transaction(pool);
@@ -128,6 +130,7 @@ async function importStock({ companyId, triggeredBy = 'CRON', userId = null } = 
     throw error;
   } finally {
     running.delete(companyId);
+    if(importedSource)await importedSource.cleanup();
   }
 }
 

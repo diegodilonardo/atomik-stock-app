@@ -149,6 +149,8 @@
     $('checkAll').checked = rows.length > 0 && rows.every(p=>checked.has(p.id));
     $('checkAll').indeterminate = rows.some(p=>checked.has(p.id)) && !$('checkAll').checked;
     $('save').disabled = busy || !current || !admin;
+    $('saveFromColumns').disabled = busy || !current || !admin;
+    $('columnSaveHelp').textContent=current ? 'El orden y la visibilidad pertenecen a «'+current.name+'». Guardar cambios conserva también los demás cambios de esta grilla.' : 'Para conservar este orden, ingresá un nombre y usá Guardar como nueva. Cada grilla tiene su propia configuración.';
     $('archive').disabled = busy || !current || !admin;
     $('export').disabled = busy || !assignments.size;
     $('assign').disabled = $('remove').disabled = busy || !checked.size;
@@ -220,8 +222,9 @@
   async function save(asNew) {
     status('Guardando grilla…');
     const result = await (await request('fashion/grids'+(asNew?'':'/'+current.id), {method:asNew?'POST':'PUT',body:JSON.stringify(payload())})).json();
-    current=result; grids=(await (await request('fashion/grids')).json()).data; gridOptions();dirty=false;status('Grilla de moda guardada.');
+    current=result; grids=(await (await request('fashion/grids')).json()).data; gridOptions();dirty=false;status('Grilla guardada con sus productos, orden de campos y opciones de visibilidad.');
   }
+  $('saveFromColumns').onclick=()=>run(()=>save(false));
   $('saveNew').onclick=()=>run(()=>save(true)); $('save').onclick=()=>run(()=>save(false));
   $('archive').onclick=()=>{
     if(!current || !confirm(`¿Anular la grilla “${current.name}”?`)) return;
@@ -230,12 +233,32 @@
   $('refresh').onclick=()=>run(async()=>{status('Actualizando maestro desde FTP…');const data=await (await request('fashion/refresh',{method:'POST'})).json();products=data.products;masterOptions();status(`Maestro actualizado: ${products.length} productos. Las asignaciones se conservaron.`);missingButton.hidden=![...assignments.keys()].some(id=>!products.some(p=>p.id===id));});
   $('export').onclick=()=>run(async()=>{
     window.scrollTo({top:0,behavior:'smooth'});status('Preparando Excel e imágenes… Mantené esta página abierta.');
+    const started=performance.now();
+    const elapsed=()=>{const seconds=Math.floor((performance.now()-started)/1000);return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');};
+    $('exportActivity').hidden=false;
+    $('exportProgress').removeAttribute('value');
+    $('exportProgress').max=1;
+    $('exportPhase').textContent='Preparando Excel e imágenes…';
+    $('exportProgressHelp').textContent='Tiempo transcurrido. Mantené esta página abierta hasta que comience la descarga.';
+    $('exportElapsed').textContent='00:00';
+    const timer=setInterval(()=>{$('exportElapsed').textContent=elapsed();},1000);
+    try {
     const response=await request('fashion/export',{method:'POST',body:JSON.stringify(payload())});
+    $('exportPhase').textContent='Recibiendo el archivo…';
     const blob=await response.blob(), url=URL.createObjectURL(blob), a=document.createElement('a');
     const filename = response.headers.get('Content-Disposition')?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
     a.href=url;a.download=filename ? decodeURIComponent(filename) : ($('name').value||'Grilla Moda')+'.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);status('Excel listo. Descarga iniciada.');
+    $('exportProgress').value=1;
+    $('exportPhase').textContent='Excel listo · Descarga iniciada';
+    $('exportProgressHelp').textContent='Tiempo total de preparación y recepción del archivo.';
+    } catch(error) {
+      $('exportProgress').value=0;
+      $('exportPhase').textContent='No se completó la exportación';
+      $('exportProgressHelp').textContent='Podés volver a intentarlo. Revisá el mensaje de error.';
+      throw error;
+    } finally {clearInterval(timer);$('exportElapsed').textContent=elapsed();}
   });
-  window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+  window.addEventListener('beforeunload',e=>{if(dirty||busy){e.preventDefault();e.returnValue='';}});
   run(async()=>{
     const {user}=await (await request('auth/me')).json();
     if(!user.fashionEnabled) throw new Error('Esta empresa no tiene configurado un maestro de moda.');

@@ -46,7 +46,7 @@ const cachedByCompany = new Map(), pendingByCompany = new Map();
 async function loadMaster(refresh = false, companyCode = '0') {
   const source = require('./fashion-source').fashionSource(companyCode);
   if (!source) throw Object.assign(new Error('La empresa no tiene configurado un maestro de moda.'), { status: 400 });
-  const key = source.code;
+  const key = JSON.stringify([source.code,source.path,source.host,source.port,source.user]);
   if (pendingByCompany.has(key)) return pendingByCompany.get(key);
   const cached = cachedByCompany.get(key);
   if (!refresh && cached && Date.now() - cached.timestamp < 3600000) return cached;

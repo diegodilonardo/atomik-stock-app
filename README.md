@@ -401,3 +401,6 @@ npm run server:actualizar -- -RutaApp C:\atomik-stock-app -Servicio StockGrillas
 Descarga cambios, rechaza modificaciones locales o ramas divergentes, detiene el servicio, actualiza por fast-forward, instala dependencias, ejecuta las migraciones SQL y vuelve a iniciar el servicio. Comprueba que /api/health responda correctamente; si usás otro puerto, indicá -UrlSalud http://localhost:PUERTO/api/health. Si falla la instalacion o migracion, deja el servicio detenido e informa el commit anterior; no revierte automaticamente la base de datos. Conserva el .env local y los archivos operativos excluidos de Git.
 
 Git respalda el codigo. La base SQL, las fotos, los archivos de stock, los Excel y el .env requieren su propio respaldo. Antes de actualizar produccion, realizar el respaldo de la base SQL.
+
+### Rutas FTP por empresa
+La migración 018 agrega STOCK_FTP_PATH y FASHION_FTP_PATH en dbo.EMPRESAS. Copia una sola vez las rutas de moda del entorno; luego SQL tiene prioridad y una ruta vacía desactiva moda. Configuración de empresa permite editar ambas rutas absolutas FTP. Host, puerto y credenciales siguen en MAESTRO_FTP_* del entorno. El stock usa FTP cuando tiene ruta; mientras no se configure, conserva SOURCE_FILE de red. Las fotos siguen en IMAGE_DIRECTORY. El cron también importa empresas con stock FTP.

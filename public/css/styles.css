@@ -89,3 +89,5 @@ tr.possible-actioned td{background:#fff3cd}tr.possible-actioned:hover td{backgro
 .stock-panel .toolbar button,.stock-filters>button,.stock-panel .pagination button{min-height:36px;padding:8px 12px;font-size:12px;line-height:20px;border-radius:8px}
 .stock-panel .toolbar button{min-width:120px}
 @media(max-width:680px){.stock-filters .filter-field,.stock-filters>label:not(.stock-positive){flex-basis:calc(50% - 10px)}.stock-panel .toolbar button{min-width:0;flex:1}.stock-panel .toolbar #selectionCount{flex-basis:100%}}
+
+.company-source-settings{border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 18px;background:#f7fafd;min-width:0}.company-source-settings legend{font-weight:700;color:#1769aa;padding:0 6px}.company-source-settings p{font-size:13px;line-height:1.5}.company-source-settings label{margin-bottom:12px}

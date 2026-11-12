@@ -50,7 +50,7 @@ async function shouldCatchUp(companyId) {
 
 async function runCompanies(triggeredBy) {
   const pool = await getPool();
-  const companies = await pool.request().query('SELECT ID_EMPRESA FROM dbo.EMPRESAS WHERE ACTIVE=1 AND SOURCE_FILE IS NOT NULL');
+  const companies = await pool.request().query("SELECT ID_EMPRESA FROM dbo.EMPRESAS WHERE ACTIVE=1 AND (SOURCE_FILE IS NOT NULL OR NULLIF(STOCK_FTP_PATH,'') IS NOT NULL)");
   for (const company of companies.recordset) {
     try {
       if (triggeredBy !== 'STARTUP' || await shouldCatchUp(company.ID_EMPRESA)) await runDailyJob(company.ID_EMPRESA, triggeredBy);

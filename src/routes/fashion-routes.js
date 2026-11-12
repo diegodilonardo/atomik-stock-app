@@ -6,7 +6,7 @@ const { buildFashionWorkbook } = require('../services/fashion-excel');
 const { priceFashionProducts } = require('../services/fashion-prices');
 const router = express.Router();
 router.use((req, res, next) => {
-  if (!require('../services/fashion-source').fashionEnabled(req.company.CODIGO)) return res.status(403).json({ error: 'La empresa no tiene configurado un maestro de moda.' });
+  if (!require('../services/fashion-source').fashionEnabled(req.company)) return res.status(403).json({ error: 'La empresa no tiene configurado un maestro de moda.' });
   next();
 });
 const serialize = row => ({ id: row.ID_GRID, name: row.NAME, version: row.VERSION, ...JSON.parse(row.SELECTION_JSON) });
@@ -15,10 +15,10 @@ function gridId(value) {
   return Number(value);
 }
 router.get('/master', async (req, res, next) => {
-  try { const master = await loadMaster(false, req.company.CODIGO); res.json({ ...master, products:await priceFashionProducts(master.products,req.company) }); } catch (error) { next(error); }
+  try { const master = await loadMaster(false, req.company); res.json({ ...master, products:await priceFashionProducts(master.products,req.company) }); } catch (error) { next(error); }
 });
 router.post('/refresh', requireRole('ADMIN'), async (req, res, next) => {
-  try { const master = await loadMaster(true, req.company.CODIGO); res.json({ ...master, products:await priceFashionProducts(master.products,req.company) }); } catch (error) { next(error); }
+  try { const master = await loadMaster(true, req.company); res.json({ ...master, products:await priceFashionProducts(master.products,req.company) }); } catch (error) { next(error); }
 });
 router.get('/grids', async (req, res, next) => {
   try {
@@ -30,7 +30,7 @@ router.get('/grids', async (req, res, next) => {
 });
 for (const method of ['post', 'put']) router[method](method === 'post' ? '/grids' : '/grids/:id', requireRole('ADMIN'), async (req, res, next) => {
   try {
-    const { products } = await loadMaster(false, req.company.CODIGO);
+    const { products } = await loadMaster(false, req.company);
     const selection = validateSelection(req.body, products);
     const pool = await getPool();
     const request = pool.request().input('company', sql.Int, req.user.companyId).input('user', sql.Int, req.user.id)
@@ -55,7 +55,7 @@ for (const method of ['post', 'put']) router[method](method === 'post' ? '/grids
 });
 router.post('/export', async (req, res, next) => {
   try {
-    const { products } = await loadMaster(false, req.company.CODIGO);
+    const { products } = await loadMaster(false, req.company);
     const selection = validateSelection(req.body, products);
     const workbook = await buildFashionWorkbook(req.company, selection, await priceFashionProducts(products,req.company));
     const buffer = await workbook.xlsx.writeBuffer();

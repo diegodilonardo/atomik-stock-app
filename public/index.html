@@ -169,9 +169,15 @@
       <p id="companyCode" class="muted"></p>
       <p>El archivo de origen identifica a esta empresa. Los productos importados quedan asociados únicamente a ella.</p>
       <form id="companyForm">
-        <label>Ruta completa del TXT de stock (opcional si usa solo Moda)<input id="companySource" maxlength="400" placeholder="\\servidor\carpeta\stock.TXT"></label>
+        <fieldset class="company-source-settings"><legend>Archivos de datos por FTP</legend>
+        <p class="muted">Configuración exclusiva de esta empresa. Ingresá la ruta completa del archivo dentro del FTP, comenzando con /.</p>
+        <label>Ruta FTP del stock<input id="companyStockFtp" maxlength="400" placeholder="/STOCK/EMPRESA/stock.txt"></label>
+        <label>Ruta FTP del maestro de moda<input id="companyFashionFtp" maxlength="400" placeholder="/PRODUCTOS/maestro.dbi"></label>
+        <p>El stock usa la ruta FTP cuando está informada; si está vacía, utiliza el TXT de red. Dejá el maestro de moda vacío si la empresa no utiliza moda. La conexión y las credenciales se configuran en el servidor.</p>
+        </fieldset>
+        <label>TXT de stock en red (alternativa si no hay ruta FTP)<input id="companySource" maxlength="400" placeholder="\\servidor\carpeta\stock.TXT"></label>
         <label>Ruta completa del Excel de salida (opcional)<input id="companyExcel" maxlength="400" placeholder="\\servidor\carpeta\Stock.xlsx"></label>
-        <label>Carpeta de fotos (opcional)<input id="companyImages" maxlength="380" placeholder="\\servidor\carpeta\fotos"></label>
+        <label>Carpeta de fotos en red (opcional)<input id="companyImages" maxlength="380" placeholder="\\servidor\carpeta\fotos"></label>
         <label>Coeficiente de precio público de esta empresa<input id="companyFactor" type="number" min="0.0001" max="99999" step="0.0001" aria-describedby="companyFactorHelp" required></label>
         <p id="companyFactorHelp" class="muted">Precio público = precio mayorista por par × coeficiente. Este valor se usa cuando no hay uno específico para la marca, licencia, rubro y tipo de producto.</p>
         <fieldset><legend>Coeficientes por lista, marca, licencia, rubro y tipo de producto</legend>

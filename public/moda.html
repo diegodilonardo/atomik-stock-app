@@ -5,6 +5,11 @@
   <header class="topbar"><div><p id="fashionCompany" class="eyebrow">COLECCIONES</p><h1>Grillas de moda</h1></div><a id="back" class="secondary button" href="/">Volver a stock</a></header>
   <p>Elegí año y temporada, seleccioná productos y asignales una categoría. Cada producto aparece en una solapa.</p>
   <p id="status" role="status" aria-live="polite">Cargando maestro…</p>
+  <section id="exportActivity" class="fashion-export-progress" aria-label="Estado de exportación" hidden>
+    <div class="export-progress-heading"><strong id="exportPhase">Preparando Excel e imágenes…</strong><span id="exportElapsed" role="timer" aria-live="off">00:00</span></div>
+    <progress id="exportProgress" aria-label="Exportación en curso"></progress>
+    <small id="exportProgressHelp">Tiempo transcurrido. Mantené esta página abierta hasta que comience la descarga.</small>
+  </section>
   <div id="workspace" hidden>
   <section class="panel fashion-controls">
     <label>Grilla guardada<select id="saved"><option value="">Nueva grilla</option></select></label>
@@ -18,7 +23,11 @@
     <summary>Columnas del Excel</summary>
     <p>Elegí Mostrar, Ocultar o No incluir para cada campo y usá ↑ / ↓ para ordenar los campos. Los ocultos conservan su posición. Los campos ocultos se conservan en el Excel y siguen disponibles para los cálculos, RESUMEN y PEDIDO. No incluir elimina la columna del Excel; los campos necesarios para cálculos y PEDIDO solo pueden ocultarse. Pedido siempre queda visible. La configuración se aplica a todas las categorías y se guarda con la grilla.</p>
     <div id="fashionColumns" aria-label="Campos y orden del Excel"></div>
-    <button id="resetColumns" type="button" class="secondary">Restablecer formato actual</button>
+    <div class="fashion-column-actions">
+      <button id="saveFromColumns" type="button" class="primary editor" disabled>Guardar cambios de esta grilla</button>
+      <button id="resetColumns" type="button" class="secondary">Restablecer formato actual</button>
+    </div>
+    <p id="columnSaveHelp">El orden y la visibilidad se guardan por grilla. Después de modificarlos, guardá los cambios.</p>
     <p id="columnsPreview" aria-live="polite"></p>
   </details>
   <details class="panel fashion-sort">

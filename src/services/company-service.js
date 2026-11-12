@@ -28,7 +28,7 @@ async function getCompanyByCode(code) {
 }
 
 function requireFiles(company) {
-  if (!company.SOURCE_FILE || !company.EXCEL_PATH) throw new Error('Configure el archivo de stock y el Excel de salida de la empresa');
+  if ((!company.SOURCE_FILE && !company.STOCK_FTP_PATH) || !company.EXCEL_PATH) throw new Error('Configure el archivo de stock y el Excel de salida de la empresa');
 }
 
 module.exports = { getCompany, getCompanyByCode, normalizeFile, requireFiles };

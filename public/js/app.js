@@ -743,6 +743,8 @@ $('#companyButton').addEventListener('click', async () => {
 
     $('#companyCode').textContent = `${data.NOMBRE} · Código: ${data.CODIGO}`;
 
+    $('#companyStockFtp').value=data.STOCK_FTP_PATH || '';
+    $('#companyFashionFtp').value=data.FASHION_FTP_PATH || '';
     $('#companySource').value = data.SOURCE_FILE || '';
 
     $('#companyExcel').value = data.EXCEL_PATH || '';
@@ -794,7 +796,7 @@ $('#companyForm').addEventListener('submit', async event => {
 
     await api('/api/company', { method: 'PUT', body: JSON.stringify({
 
-      sourceFile: $('#companySource').value, excelPath: $('#companyExcel').value,
+      stockFtpPath: $('#companyStockFtp').value, fashionFtpPath: $('#companyFashionFtp').value, sourceFile: $('#companySource').value, excelPath: $('#companyExcel').value,
 
       imageDirectory: $('#companyImages').value,
 
@@ -804,7 +806,9 @@ $('#companyForm').addEventListener('submit', async event => {
 
     }) });
 
-    $('#companyModal').classList.add('hidden'); toast('Configuración guardada.'); await loadStock();
+    state.user.fashionEnabled=Boolean($('#companyFashionFtp').value.trim());
+    $('#fashionButton').classList.toggle('hidden', !state.user.fashionEnabled);
+    $('#companyModal').classList.add('hidden'); toast('Configuración guardada para esta empresa. Se usará en la próxima actualización de datos.'); await loadStock();
 
   } catch (error) { $('#companyError').textContent = error.message; }
 

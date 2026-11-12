@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const directory = path.join(__dirname, '..', 'sql');
-const batches = ['001_schema.sql', '002_multiempresa.sql', '003_product_images.sql', '004_optional_stock_fields.sql', '005_saved_grids.sql', '006_grid_schedule.sql', '007_licenses.sql', '008_stock_brand.sql', '009_price_lists.sql', '010_unique_usernames.sql', '011_superadmin.sql', '012_atomik_company_code.sql', '013_cross_company_actors.sql', '014_price_factors.sql', '015_factor_dimensions.sql', '016_factor_lists.sql', '017_fashion_grids.sql'].flatMap(file =>
+const batches = ['001_schema.sql', '002_multiempresa.sql', '003_product_images.sql', '004_optional_stock_fields.sql', '005_saved_grids.sql', '006_grid_schedule.sql', '007_licenses.sql', '008_stock_brand.sql', '009_price_lists.sql', '010_unique_usernames.sql', '011_superadmin.sql', '012_atomik_company_code.sql', '013_cross_company_actors.sql', '014_price_factors.sql', '015_factor_dimensions.sql', '016_factor_lists.sql', '017_fashion_grids.sql', '018_company_ftp.sql'].flatMap(file =>
   fs.readFileSync(path.join(directory, file), 'utf8').split(/^GO\s*$/mi).filter(batch => batch.trim()));
 const script = `-- Gestion Stock: instalacion y migracion multiempresa para SSMS.
 -- Generado por npm run db:build-script. No editar las copias del esquema aqui.

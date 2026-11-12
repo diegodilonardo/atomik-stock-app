@@ -20,7 +20,7 @@ router.get('/', async (req, res, next) => {
 
   try {
 
-  const { ID_EMPRESA, CODIGO, NOMBRE, SOURCE_FILE, EXCEL_PATH, PUBLIC_PRICE_FACTOR, RETENTION_DAYS, IMAGE_DIRECTORY } = req.company;
+  const { ID_EMPRESA, CODIGO, NOMBRE, SOURCE_FILE, EXCEL_PATH, PUBLIC_PRICE_FACTOR, RETENTION_DAYS, IMAGE_DIRECTORY, STOCK_FTP_PATH, FASHION_FTP_PATH } = req.company;
 
   const pool = await getPool();
 
@@ -41,9 +41,9 @@ router.get('/', async (req, res, next) => {
   const brands = new Set(result.recordsets[1].map(row => row.MARCA));
   const combinations = new Map(result.recordsets[2].map(row => [JSON.stringify([row.MARCA,row.LICENCIA,row.RUBRO]),row]));
   let fashionWarning = '';
-  if (require('../services/fashion-source').fashionEnabled(CODIGO)) {
+  if (require('../services/fashion-source').fashionEnabled(req.company)) {
     try {
-      const { products } = await require('../services/fashion-master').loadMaster(false,CODIGO);
+      const { products } = await require('../services/fashion-master').loadMaster(false,req.company);
       for (const product of products) {
         const row = { MARCA:String(product.DMARCA || '').trim(),
           LICENCIA:/^SIN LICENCIA$/i.test(String(product.LICENCIAS || '').trim()) ? '' : String(product.LICENCIAS || '').trim(),
@@ -53,7 +53,7 @@ router.get('/', async (req, res, next) => {
       }
     } catch { fashionWarning='No se pudo leer el maestro de moda; se muestran las reglas y combinaciones ya disponibles.'; }
   }
-  res.json({ ID_EMPRESA, CODIGO, NOMBRE, SOURCE_FILE, EXCEL_PATH, PUBLIC_PRICE_FACTOR, RETENTION_DAYS, IMAGE_DIRECTORY, fashionWarning,
+  res.json({ ID_EMPRESA, CODIGO, NOMBRE, SOURCE_FILE, EXCEL_PATH, PUBLIC_PRICE_FACTOR, RETENTION_DAYS, IMAGE_DIRECTORY, STOCK_FTP_PATH, FASHION_FTP_PATH, fashionWarning,
 
     priceLists: result.recordsets[3].map(row => row.LISTA).sort(), combinations: [...combinations.values()], priceFactors: result.recordsets[0], brands: [...brands].sort() });
 
@@ -63,7 +63,7 @@ router.get('/', async (req, res, next) => {
 
 router.put('/', async (req, res, next) => {
 
-  let source, excel, imageDirectory;
+  let source, excel, imageDirectory, stockFtp, fashionFtp;
 
   const factor = Number(req.body.publicPriceFactor);
 
@@ -113,6 +113,9 @@ router.put('/', async (req, res, next) => {
 
     }
 
+    const normalizeFtp=require('../services/ftp-stock').normalizeFtpPath;
+    stockFtp=normalizeFtp(req.body.stockFtpPath ?? req.company.STOCK_FTP_PATH);
+    fashionFtp=normalizeFtp(req.body.fashionFtpPath ?? req.company.FASHION_FTP_PATH);
     source = String(req.body.sourceFile || '').trim() ? normalizeFile(req.body.sourceFile) : null;
 
     excel = String(req.body.excelPath || '').trim() ? normalizeFile(req.body.excelPath) : null;
@@ -149,9 +152,10 @@ router.put('/', async (req, res, next) => {
 
         .input('factor', sql.Decimal(9,4), factor).input('retention', sql.Int, retention)
 
+        .input('stockFtp',sql.NVarChar(400),stockFtp).input('fashionFtp',sql.NVarChar(400),fashionFtp)
         .input('images', sql.NVarChar(400), imageDirectory || null)
 
-        .query(`UPDATE dbo.EMPRESAS SET SOURCE_FILE=@source,EXCEL_PATH=@excel,
+        .query(`UPDATE dbo.EMPRESAS SET STOCK_FTP_PATH=@stockFtp,FASHION_FTP_PATH=@fashionFtp,SOURCE_FILE=@source,EXCEL_PATH=@excel,
 
           PUBLIC_PRICE_FACTOR=@factor,RETENTION_DAYS=@retention,IMAGE_DIRECTORY=@images WHERE ID_EMPRESA=@company`);
 
