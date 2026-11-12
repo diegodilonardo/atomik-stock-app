@@ -91,7 +91,8 @@
     <h3>Curvas reutilizables</h3>
     <div id="savedCurveTemplates"></div>
     <h3>Curvas aplicadas a productos</h3>
-    <div id="virtualCurves"></div>
+    <div class="curve-list-toolbar"><label>Filtrar por modelo<input type="search" id="curveModelFilter" list="curveModelOptions" placeholder="Escribí o elegí un modelo"></label><datalist id="curveModelOptions"></datalist><button type="button" class="secondary" id="clearCurveModel">Limpiar filtro</button><span id="curveListCount" role="status"></span></div>
+    <div id="virtualCurves" class="curve-compact-list"></div>
     <p>Las curvas se guardan con la grilla. Para editar sus integrantes o cantidades, desarmá la curva y volvé a crearla; los productos se conservan asignados.</p>
   </details>
   <section class="panel">

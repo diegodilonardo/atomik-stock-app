@@ -166,7 +166,7 @@
   function payload() { return { name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, curveTemplates, curves, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
   function gridOptions() { setOptions('saved', [['','Nueva grilla'],...grids.map(g=>[String(g.id),g.name])], [String(current?.id || '')]); }
   function openGrid(grid) {
-    current = grid; batchSelected.clear();batchSnapshot=null;$('batchConfirmation').hidden=true;$('tableSearch').value=''; curveTemplates=structuredClone(grid?.curveTemplates || []);batchModels.setValues([]);batchColors.setValues([]);curves=structuredClone(grid?.curves || []); curveDraft=[];$('curveDraft').hidden=true; assignments.clear(); checked.clear();
+    current = grid; $('curveModelFilter').value='';batchSelected.clear();batchSnapshot=null;$('batchConfirmation').hidden=true;$('tableSearch').value=''; curveTemplates=structuredClone(grid?.curveTemplates || []);batchModels.setValues([]);batchColors.setValues([]);curves=structuredClone(grid?.curves || []); curveDraft=[];$('curveDraft').hidden=true; assignments.clear(); checked.clear();
     $('protectExcel').checked=grid?.protectExcel !== false;
     restoreColumns(grid?.columns, grid?.excludedColumns, grid?.columnOrder);
     const savedSort=FashionSort.normalize(grid?.sort);
@@ -315,13 +315,23 @@
   function renderCurves(){
     renderBatch();
     $('prepareCurve').disabled=busy||!admin||!checked.size;
-    $('virtualCurves').innerHTML=curves.map(c=>{
-      const first=products.find(p=>p.id===c.parts[0]?.id);
-      const detail=c.parts.map(part=>{const p=products.find(p=>p.id===part.id);return (p?FashionCurves.size(p):'Ausente')+' × '+part.quantity;}).join(' / ');
+    const byId=new Map(products.map(p=>[p.id,p]));
+    const normalizeModel=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
+    const query=normalizeModel($('curveModelFilter').value).trim();
+    const models=[...new Set(curves.map(c=>byId.get(c.parts[0]?.id)?.DMODC).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+    $('curveModelOptions').innerHTML=models.map(model=>'<option value="'+escape(model)+'"></option>').join('');
+    const filtered=curves.filter(c=>!query||normalizeModel(byId.get(c.parts[0]?.id)?.DMODC).includes(query));
+    $('curveListCount').textContent=filtered.length+' de '+curves.length+' curvas';
+    $('clearCurveModel').disabled=busy||!$('curveModelFilter').value;
+    $('virtualCurves').innerHTML=filtered.map(c=>{
+      const first=byId.get(c.parts[0]?.id);
+      const detail=c.parts.map(part=>{const p=byId.get(part.id);return (p?FashionCurves.size(p):'Ausente')+' × '+part.quantity;}).join(' / ');
       const valid=c.parts.every(part=>{const p=products.find(p=>p.id===part.id);return p&&FashionCurves.eligible(p)&&assignments.has(part.id);});
-      return '<div class="fashion-curve-card"><strong>'+escape(c.name)+'</strong><p>'+escape((first?.DMODC||'')+' · '+(first?.DCOLORC||'')+' · '+detail)+'</p><p>'+c.parts.reduce((n,p)=>n+p.quantity,0)+' pares por módulo'+(valid?'':' · Revisar: producto ausente, sin asignar o con stock')+'</p><button type="button" class="secondary" data-dissolve="'+escape(c.id)+'" '+(busy||!admin?'disabled':'')+'>Desarmar curva</button></div>';
-    }).join('') || '<p>No hay curvas virtuales en esta grilla.</p>';
+      return '<div class="curve-compact-row"><div class="curve-compact-description"><strong>'+escape((first?.DMODC||'Producto ausente')+' · '+(first?.DCOLORC||''))+'</strong><small>'+escape(c.name+' · '+detail)+' · '+c.parts.reduce((n,p)=>n+p.quantity,0)+' pares por módulo</small>'+(valid?'':'<small class="error">Revisar: producto ausente, sin asignar o con stock</small>')+'</div><button type="button" class="secondary" data-dissolve="'+escape(c.id)+'" '+(busy||!admin?'disabled':'')+'>Desarmar curva</button></div>';
+    }).join('') || '<p>'+(curves.length?'No hay curvas para ese modelo.':'No hay curvas virtuales en esta grilla.')+'</p>';
   }
+  $('curveModelFilter').oninput=renderCurves;
+  $('clearCurveModel').onclick=()=>{$('curveModelFilter').value='';renderCurves();$('curveModelFilter').focus();};
   $('prepareCurve').onclick=()=>{
     if(busy||!admin)return;
     const chosen=products.filter(p=>checked.has(p.id));
