@@ -1,6 +1,14 @@
 (function(root) {
   const collator = new Intl.Collator('es', { numeric:true, sensitivity:'base' });
   const text = value => String(value ?? '').trim();
+  const sizes=['XXS','XS','S','M','L','XL','2X','3X','4X','5X'];
+  function compareSizes(a,b) {
+    const normalizeSize=value=>text(value).toUpperCase().replace(/^XXL$/,'2X').replace(/^XXXL$/,'3X').replace(/^([2-5])XL$/,'$1X');
+    const x=normalizeSize(a),y=normalizeSize(b),i=sizes.indexOf(x),j=sizes.indexOf(y);
+    if(i>=0 && j>=0)return i-j;
+    if(i>=0 || j>=0)return i>=0 ? -1 : 1;
+    return collator.compare(text(a),text(b));
+  }
   const fields = [{key:'category',label:'Categoría'},{key:'model',label:'Modelo'},{key:'color',label:'Color'},{key:'curve',label:'Curva'}];
   function normalize(value) {
     if (value === undefined || value === null) return null;
@@ -15,13 +23,13 @@
     const get=(p,key)=>key==='category'?category(p):key==='model'?p.DMODC:key==='color'?p.DCOLORC:p.DTALLC || p.TALLC;
     return (a,b)=>{
       for(const rule of rules) {
-        const result=collator.compare(text(get(a,rule.field)),text(get(b,rule.field)));
+        const result=rule.field==='curve' ? compareSizes(get(a,rule.field),get(b,rule.field)) : collator.compare(text(get(a,rule.field)),text(get(b,rule.field)));
         if(result) return rule.direction==='desc'?-result:result;
       }
       return collator.compare(text(a.COD_ALFA),text(b.COD_ALFA)) || collator.compare(text(a.CODIGO),text(b.CODIGO));
     };
   }
-  const api={fields,normalize,create,compare:create(null)};
+  const api={compareSizes,fields,normalize,create,compare:create(null)};
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.FashionSort = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

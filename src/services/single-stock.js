@@ -1,9 +1,4 @@
-const clothingSizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL', '4XL', '5XL'];
-function compareSizes(a, b) {
-  const x = clothingSizes.indexOf(a.toUpperCase()), y = clothingSizes.indexOf(b.toUpperCase());
-  if (x >= 0 && y >= 0) return x - y;
-  return a.localeCompare(b, 'es', { numeric: true });
-}
+const {compareSizes}=require('../../public/js/fashion-sort');
 
 function groupSingles(rows) {
   const groups = new Map();
