@@ -43,10 +43,25 @@
     }
     return {products:[...products,...virtual.map(v=>v.product)],items:[...items.filter(i=>!consumed.has(i.id)),...virtual.map(v=>v.item)]};
   }
+  function validateTemplates(value){
+    if(value===undefined)return [];
+    if(!Array.isArray(value)||value.length>1000)fail('Plantillas de curvas inválidas');
+    const ids=new Set(),sort=typeof module==='object'&&module.exports?require('./fashion-sort'):root.FashionSort;
+    return value.map(t=>{
+      if(!t||typeof t.id!=='string'||!t.id||t.id.length>100||ids.has(t.id)||typeof t.name!=='string'||!t.name.trim()||t.name.length>100||!Array.isArray(t.distribution)||!t.distribution.length||t.distribution.length>100)fail('Indicá nombre y talles de la curva');
+      ids.add(t.id);const sizes=[];
+      const distribution=t.distribution.map(p=>{
+        if(!p||typeof p.size!=='string'||!p.size.trim()||p.size.length>60||sizes.some(s=>sort.compareSizes(s,p.size)===0)||!Number.isInteger(p.quantity)||p.quantity<1||p.quantity>1000)fail('Cada talle debe ser único y su cantidad un entero entre 1 y 1000');
+        sizes.push(p.size.trim());return {size:p.size.trim(),quantity:p.quantity};
+      });
+      distribution.sort((a,b)=>sort.compareSizes(a.size,b.size));
+      return {id:t.id,name:t.name.trim(),distribution};
+    });
+  }
   function planBatch(template,products,groupKeys,existing){
     const sort=typeof module==='object'&&module.exports?require('./fashion-sort'):root.FashionSort;
     const byId=new Map(products.map(p=>[p.id,p]));
-    const distribution=template.parts.map(part=>({size:size(byId.get(part.id)||{}),quantity:part.quantity}));
+    const distribution=template.distribution || template.parts.map(part=>({size:size(byId.get(part.id)||{}),quantity:part.quantity}));
     if(distribution.some(p=>!p.size))fail('La curva de origen tiene productos ausentes. Revisala antes de reutilizarla.');
     const grouped=new Map();
     for(const p of products){const key=identity(p);if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(p);}
@@ -64,6 +79,6 @@
       return {key,product:group[0],parts,reasons};
     });
   }
-  const api={eligible,size,identity,validate,materialize,planBatch};
+  const api={eligible,size,identity,validate,materialize,planBatch,validateTemplates};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.FashionCurves=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

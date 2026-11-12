@@ -5,7 +5,7 @@
   $('back').href = '/' + suffix;
   const headers = { 'Content-Type': 'application/json', ...(company ? { 'X-Company-ID': company } : {}) };
   let products = [], grids = [], current = null, page = 1, busy = false, dirty = false, admin = false;
-  let curves=[],curveDraft=[],batchRows=[],batchSnapshot=null;
+  let curveTemplates=[],curves=[],curveDraft=[],batchRows=[],batchSnapshot=null;
   const batchSelected=new Set();
   const assignments = new Map(), checked = new Set();
   const categories = ['DISCIPLINA','HOMBRE','DAMA','KIDS','SUELTOS','ACCESORIOS'];
@@ -163,10 +163,10 @@
     $('export').disabled = busy || !assignments.size;
     $('assign').disabled = $('remove').disabled = busy || !checked.size;
   }
-  function payload() { return { name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, curves, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
+  function payload() { return { name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, curveTemplates, curves, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
   function gridOptions() { setOptions('saved', [['','Nueva grilla'],...grids.map(g=>[String(g.id),g.name])], [String(current?.id || '')]); }
   function openGrid(grid) {
-    current = grid; batchSelected.clear();batchSnapshot=null;$('batchConfirmation').hidden=true;$('tableSearch').value=''; curves=structuredClone(grid?.curves || []); curveDraft=[];$('curveDraft').hidden=true; assignments.clear(); checked.clear();
+    current = grid; batchSelected.clear();batchSnapshot=null;$('batchConfirmation').hidden=true;$('tableSearch').value=''; curveTemplates=structuredClone(grid?.curveTemplates || []);batchModels.setValues([]);batchColors.setValues([]);curves=structuredClone(grid?.curves || []); curveDraft=[];$('curveDraft').hidden=true; assignments.clear(); checked.clear();
     $('protectExcel').checked=grid?.protectExcel !== false;
     restoreColumns(grid?.columns, grid?.excludedColumns, grid?.columnOrder);
     const savedSort=FashionSort.normalize(grid?.sort);
@@ -228,32 +228,60 @@
   $('checkAll').onchange = () => { visible().sort(productComparator()).slice((page-1)*50,page*50).forEach(p=>{$('checkAll').checked?checked.add(p.id):checked.delete(p.id);});render(); };
   $('assign').onclick = () => { if(!allowCurveEdit())return; for(const id of checked) assignments.set(id,$('category').value); checked.clear(); dirty=true;render(); };
   $('remove').onclick = () => { if(!allowCurveEdit())return; curves=curves.filter(c=>!c.parts.every(p=>checked.has(p.id)));for(const id of checked) assignments.delete(id);checked.clear();dirty=true;render(); };
+  const batchModels=new MultiSelect($('batchModels'),'Modelo','Todos los modelos asignados');
+  const batchColors=new MultiSelect($('batchColors'),'Color','Todos los colores asignados');
+  function availableTemplates(){return [...curveTemplates,...curves.map(c=>({...c,id:'applied:'+c.id}))];}
+  function assignedProducts(){return products.filter(p=>assignments.has(p.id));}
+  function addTemplateRow(){
+    const row=document.createElement('div');row.className='fashion-template-row';
+    row.innerHTML='<label>Talle<input data-template-size maxlength="60" placeholder="Ej.: M"></label><label>Cantidad<input data-template-qty type="number" min="1" max="1000" step="1" value="1"></label><button type="button" class="secondary">Quitar</button>';
+    row.querySelector('button').onclick=()=>row.remove();$('templateRows').append(row);
+  }
+  addTemplateRow();
+  $('addTemplateSize').onclick=addTemplateRow;
+  $('saveTemplate').onclick=()=>{
+    if(busy||!admin)return;
+    try{
+      const id=Array.from(crypto.getRandomValues(new Uint32Array(4))).map(n=>n.toString(16)).join('-');
+      const template={id,name:$('templateName').value,distribution:[...$('templateRows').children].map(row=>({size:row.querySelector('[data-template-size]').value,quantity:Number(row.querySelector('[data-template-qty]').value)}))};
+      curveTemplates=FashionCurves.validateTemplates([...curveTemplates,template]);
+      dirty=true;invalidateBatch();renderBatch();$('batchTemplate').value=id;renderBatch();
+      $('batchCurvePanel').open=true;$('templateName').value='';$('templateRows').replaceChildren();addTemplateRow();
+      status('Curva definida sin asignar productos. Podés aplicarla ahora o guardar la grilla para conservarla.');
+    }catch(error){status(error.message,true);}
+  };
   function invalidateBatch(){batchSnapshot=null;$('batchConfirmation').hidden=true;}
   function renderBatch(){
     const previous=$('batchTemplate').value;
-    $('batchTemplate').innerHTML='<option value="">Elegir curva guardada</option>'+curves.map(c=>'<option value="'+escape(c.id)+'">'+escape(c.name)+'</option>').join('');
-    $('batchTemplate').value=curves.some(c=>c.id===previous)?previous:'';
-    const template=curves.find(c=>c.id===$('batchTemplate').value);
-    const query=$('batchSearch').value.trim().toLocaleLowerCase('es').split(/\s+/).filter(Boolean);
-    const keys=[...new Set(visible().filter(p=>Number(p.NIVEL)===900&&Number(p.PARES)===1).filter(p=>query.every(w=>[p.DMODC,p.DCOLORC,p.COD_ANIO,p.DCOD_TEM,p.COD_TEM].join(' ').toLocaleLowerCase('es').includes(w))).map(FashionCurves.identity))];
-    try {batchRows=template?FashionCurves.planBatch(template,products,keys,curves):[];}
+    $('batchTemplate').innerHTML='<option value="">Elegir curva guardada</option>'+availableTemplates().map(c=>'<option value="'+escape(c.id)+'">'+escape(c.name)+'</option>').join('');
+    $('batchTemplate').value=availableTemplates().some(c=>c.id===previous)?previous:'';
+    const template=availableTemplates().find(c=>c.id===$('batchTemplate').value);
+    const assigned=assignedProducts();
+    const models=[...new Set(assigned.map(p=>String(p.DMODC||'')))].sort();
+    batchModels.setValues(batchModels.values.filter(v=>models.includes(v)));batchModels.setOptions(models);
+    const byModel=assigned.filter(p=>!batchModels.values.length||batchModels.values.includes(String(p.DMODC||'')));
+    const colors=[...new Set(byModel.map(p=>String(p.DCOLORC||'')))].sort();
+    batchColors.setValues(batchColors.values.filter(v=>colors.includes(v)));batchColors.setOptions(colors);
+    const keys=[...new Set(byModel.filter(p=>(!batchColors.values.length||batchColors.values.includes(String(p.DCOLORC||'')))&&Number(p.NIVEL)===900&&Number(p.PARES)===1).map(FashionCurves.identity))];
+    try {batchRows=template?FashionCurves.planBatch(template,assigned,keys,curves):[];}
     catch(error){batchRows=[];$('batchSummary').textContent=error.message;}
     const allowed=new Set(batchRows.filter(r=>!r.reasons.length).map(r=>r.key));
     for(const key of batchSelected)if(!allowed.has(key))batchSelected.delete(key);
     $('batchGroups').innerHTML=batchRows.map((r,i)=>'<label class="fashion-batch-row"><input type="checkbox" data-batch="'+i+'" '+(batchSelected.has(r.key)?'checked':'')+' '+(r.reasons.length||busy?'disabled':'')+'><span><strong>'+escape([r.product?.DMODC,r.product?.DCOLORC].join(' · '))+'</strong><small>'+escape('Año '+(r.product?.COD_ANIO||'Sin dato')+' · Temporada '+(r.product?.DCOD_TEM||r.product?.COD_TEM||'Sin dato'))+'</small><small>'+escape(r.reasons.length?r.reasons.join('; '):r.parts.length+' talles disponibles · '+r.parts.reduce((n,p)=>n+p.quantity,0)+' pares por módulo')+'</small></span></label>').join('');
-    $('batchSummary').textContent=template?batchSelected.size+' combinaciones marcadas · '+batchRows.filter(r=>r.reasons.length).length+' pendientes por revisar.':'Primero creá o cargá una curva de esta grilla para reutilizarla.';
+    $('batchSummary').textContent=template?batchSelected.size+' combinaciones marcadas · '+batchRows.filter(r=>r.reasons.length).length+' pendientes por revisar.':'Definí una curva sin seleccionar productos o elegí una curva existente.';
     $('batchPreview').disabled=busy||!admin||!batchSelected.size;
     $('batchSelectAll').disabled=busy||!admin||!allowed.size;
     $('batchClear').disabled=busy||!batchSelected.size;
   }
   $('batchTemplate').onchange=()=>{batchSelected.clear();invalidateBatch();renderBatch();};
-  $('batchSearch').oninput=()=>{invalidateBatch();renderBatch();};
+  $('batchModels').onchange=()=>{batchSelected.clear();invalidateBatch();renderBatch();};
+  $('batchColors').onchange=()=>{batchSelected.clear();invalidateBatch();renderBatch();};
   $('batchCategory').onchange=invalidateBatch;
   $('batchGroups').onchange=event=>{const row=batchRows[Number(event.target.dataset.batch)];if(!row||row.reasons.length)return;if(event.target.checked)batchSelected.add(row.key);else batchSelected.delete(row.key);invalidateBatch();renderBatch();};
   $('batchSelectAll').onclick=()=>{batchRows.filter(r=>!r.reasons.length).forEach(r=>batchSelected.add(r.key));invalidateBatch();renderBatch();};
   $('batchClear').onclick=()=>{batchSelected.clear();invalidateBatch();renderBatch();};
   $('batchPreview').onclick=()=>{
-    const template=curves.find(c=>c.id===$('batchTemplate').value);if(!template||!batchSelected.size)return;
+    const template=availableTemplates().find(c=>c.id===$('batchTemplate').value);if(!template||!batchSelected.size)return;
     batchSnapshot={templateId:template.id,keys:[...batchSelected],category:$('batchCategory').value};
     $('batchPreviewText').textContent='Se crearán '+batchSelected.size+' módulos virtuales con la curva «'+template.name+'» en '+batchSnapshot.category+'. Sus talles se asignarán a esa categoría. Los productos con stock y las combinaciones pendientes no se modificarán.';
     $('batchConfirmation').hidden=false;
@@ -261,8 +289,8 @@
   $('batchApply').onclick=()=>{
     if(busy||!admin||!batchSnapshot)return;
     try{
-      const template=curves.find(c=>c.id===batchSnapshot.templateId);if(!template)throw new Error('La curva de origen cambió. Revisá nuevamente.');
-      const plan=FashionCurves.planBatch(template,products,batchSnapshot.keys,curves);
+      const template=availableTemplates().find(c=>c.id===batchSnapshot.templateId);if(!template)throw new Error('La curva de origen cambió. Revisá nuevamente.');
+      const plan=FashionCurves.planBatch(template,assignedProducts(),batchSnapshot.keys,curves);
       if(plan.some(r=>r.reasons.length))throw new Error('Cambió la disponibilidad de una combinación. Revisá la vista previa nuevamente.');
       const next=new Map(assignments);
       const additions=plan.map(r=>{r.parts.forEach(p=>next.set(p.id,batchSnapshot.category));return {id:Array.from(crypto.getRandomValues(new Uint32Array(4))).map(n=>n.toString(16)).join('-'),name:template.name,parts:r.parts};});

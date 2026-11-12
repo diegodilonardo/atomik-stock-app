@@ -20,16 +20,16 @@ function applyFashionLayout(workbook, columns, counts, excludedColumns, columnOr
     const snapshots=[];
     for(let r=2;r<=sheet.rowCount;r++) snapshots.push({r,cells:fields.map((field,i)=>{
       const cell=sheet.getCell(r,i+2);
-      return {key:field.key,value:structuredClone(cell.value),style:structuredClone(cell.style),validation:structuredClone(cell.dataValidation),note:structuredClone(cell.note)};
+      return {key:field.key,value:structuredClone(cell.value),style:structuredClone(cell.style),validation:structuredClone(cell.dataValidation)};
     })});
     for(const merge of [...sheet.model.merges])sheet.unMergeCells(merge);
     sheet.dataValidations.model={};
     for(let c=2;c<=fields.length+1;c++){sheet.getCell(1,c).value=null;sheet.getCell(1,c).style={};}
-    for(let r=2;r<=sheet.rowCount;r++) for(let c=2;c<=fields.length+1;c++) { sheet.getCell(r,c).value=null; sheet.getCell(r,c).style={}; sheet.getCell(r,c).note=undefined; }
+    for(let r=2;r<=sheet.rowCount;r++) for(let c=2;c<=fields.length+1;c++) { sheet.getCell(r,c).value=null; sheet.getCell(r,c).style={}; }
     for(const {r,cells} of snapshots) for(const cell of cells) {
       if(excluded.includes(cell.key)) continue;
       const target=sheet.getCell(r,positions[cell.key]);
-      target.value=cell.value;target.style=cell.style;target.note=cell.note;
+      target.value=cell.value;target.style=cell.style;
       if(cell.validation)target.dataValidation=cell.validation;
     }
     if(excluded.length) sheet.spliceColumns(ordered.length+2,excluded.length);

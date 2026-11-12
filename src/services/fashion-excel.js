@@ -5,6 +5,7 @@ const { loadImageIndex, embedProductImages } = require('./product-images');
 
 async function buildFashionWorkbook(company, selection, products) {
   const valid = validateSelection(selection, products);
+  if(!valid.items.length)throw Object.assign(new Error('Asigná productos antes de exportar la grilla.'),{status:400});
   const compare = create(valid.sort);
   const expanded=require('../../public/js/fashion-curves').materialize(valid,products);
   const byId = new Map(expanded.products.map(p => [p.id, p]));
@@ -41,7 +42,6 @@ async function buildFashionWorkbook(company, selection, products) {
       const r = i + 3;
       const values = ['Sin imagen',product.COD_ANIO,product.DCOD_TEM,product.DMODC,product.DCOLORC,product.DTALLC || product.TALLC,
         product.SEXO,product.EDAD,product.DISCIPLINA,product.PARES,product.PRICE_WHOLESALE,product.PRICE_PUBLIC,0,{ formula: `ROUND(L${r}*K${r}*N${r},2)`, result: 0 },product.CODIGO,product.COD_ALFA,product.STOCK ?? null,{ formula: `N${r}*K${r}`, result:0 }];
-      if(product.VIRTUAL_NAME)sheet.getCell(r,7).note='Curva virtual: '+product.VIRTUAL_NAME+'. PEDIDO se desglosa en los códigos originales.';
       sheet.getRow(r).height = 69;
       values.forEach((value, c) => {
         const cell = sheet.getCell(r, c + 2); cell.value = value;

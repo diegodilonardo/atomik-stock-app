@@ -59,6 +59,13 @@
   <details class="panel fashion-columns" id="virtualCurvePanel">
     <summary>Curvas virtuales de sueltos sin stock</summary>
     <p>Seleccioná los talles de un mismo modelo y color en la tabla. Solo se admiten productos sueltos, de un par y stock 0. La curva reemplaza esos productos por una fila en el Excel; PEDIDO conserva sus códigos originales.</p>
+    <details class="fashion-curve-card editor"><summary>Definir curva sin seleccionar productos</summary>
+      <label>Nombre<input id="templateName" maxlength="100" placeholder="Ej.: S–XL, 6 pares"></label>
+      <div id="templateRows"></div>
+      <button id="addTemplateSize" type="button" class="secondary">Agregar talle</button>
+      <button id="saveTemplate" type="button" class="primary">Crear curva reutilizable</button>
+      <p>Definí talles y cantidades. Después aplicá la curva a los modelos y colores asignados. Guardá la grilla para conservarla.</p>
+    </details>
     <button id="prepareCurve" type="button" class="secondary editor">Armar curva con los seleccionados</button>
     <div id="curveDraft" hidden>
       <label>Nombre de la curva<input id="curveName" maxlength="100" placeholder="Ej.: S–XL, 6 pares"></label>
@@ -70,10 +77,10 @@
     </div>
     <details class="fashion-curve-card editor" id="batchCurvePanel">
       <summary>Aplicar una curva por modelo y color</summary>
-      <p>Se muestran las combinaciones de la vista actual. La app busca todos sus talles en el maestro, sin mezclar años ni temporadas. Solo se incluyen los talles de la curva; los demás productos se conservan.</p>
+      <p>Se muestran los modelos y colores ya asignados a esta grilla. La app busca sus talles entre los productos asignados, sin mezclar años ni temporadas. Solo se incluyen los talles de la curva; los demás productos se conservan.</p>
       <label>Curva a reutilizar<select id="batchTemplate"></select></label>
       <label>Categoría de destino<select id="batchCategory"><option>DISCIPLINA</option><option>HOMBRE</option><option>DAMA</option><option>KIDS</option><option>SUELTOS</option><option>ACCESORIOS</option></select></label>
-      <label>Buscar modelo o color<input type="search" id="batchSearch" placeholder="Modelo, color, año o temporada"></label>
+      <div class="fashion-batch-filters"><div><strong>Modelos asignados</strong><div id="batchModels"></div></div><div><strong>Colores asignados</strong><div id="batchColors"></div></div></div>
       <button type="button" class="secondary" id="batchSelectAll">Marcar combinaciones disponibles</button>
       <button type="button" class="secondary" id="batchClear">Limpiar</button>
       <div id="batchGroups" class="fashion-batch-groups"></div>

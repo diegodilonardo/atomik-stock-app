@@ -27,7 +27,7 @@ test('una fila virtual con 6 pares genera cuatro códigos de pedido y respeta co
  assert.equal(sheet.getCell(virtualRow,col('PRECIO MAYORISTA')).value,115);
  assert.equal(sheet.getCell(virtualRow,col('PRECIO PÚBLICO')).value,230);
  assert.equal(sheet.getCell(virtualRow,col('CURVA / TALLE')).value,'S × 1 / M × 2 / L × 2 / XL × 1');
- assert.ok(sheet.getCell(virtualRow,col('CURVA / TALLE')).note);
+ for(const ws of loaded.worksheets)ws.eachRow(row=>row.eachCell(cell=>assert.equal(cell.note,undefined)));
  assert.equal(sheet.getCell(virtualRow,col('TOTAL DE PARES')).formula,sheet.getColumn(col('PEDIDO')).letter+virtualRow+'*'+sheet.getColumn(col('PARES')).letter+virtualRow);
  assert.equal(sheet.rowCount,5);
  const orderLetter=sheet.getColumn(col('PEDIDO')).letter;
@@ -64,4 +64,19 @@ test('aplica distribución por modelo/color sin mezclar temporadas ni productos 
  assert.deepEqual(additions[0].parts.map(p=>p.quantity),[1,2,2,1]);
  assert.ok(additions[0].parts.every(p=>ready.some(product=>product.id===p.id)));
  assert.ok(additions[1].parts.every(p=>otherSeason.some(product=>product.id===p.id)));
+});
+
+test('define y guarda plantillas sin productos y las aplica solo a los asignados',async()=>{
+ const {validateTemplates,planBatch,identity}=require('../public/js/fashion-curves');
+ const template={id:'free',name:'Curva libre',distribution:[{size:'XL',quantity:1},{size:'S',quantity:1},{size:'M',quantity:2},{size:'L',quantity:2}]};
+ const saved=JSON.parse(JSON.stringify(validateSelection({name:'Plantillas',filters:{years:[],seasons:[]},items:[],curveTemplates:[template]},[])));
+ assert.deepEqual(saved.curveTemplates[0].distribution.map(p=>p.size),['S','M','L','XL']);
+ assert.equal(saved.items.length,0);
+ await assert.rejects(buildFashionWorkbook({},saved,[]),/Asigná productos/);
+ const complete=planBatch(saved.curveTemplates[0],products,[identity(products[0])],[]);
+ assert.equal(complete[0].reasons.length,0);
+ assert.deepEqual(complete[0].parts.map(p=>p.quantity),[1,2,2,1]);
+ const incomplete=planBatch(saved.curveTemplates[0],products.slice(0,3),[identity(products[0])],[]);
+ assert.match(incomplete[0].reasons.join(' '),/XL: falta el talle/);
+ for(const distribution of [[{size:'S',quantity:0}],[{size:'S',quantity:1},{size:'s',quantity:2}],[{size:'2X',quantity:1},{size:'XXL',quantity:1}]])assert.throws(()=>validateTemplates([{...template,distribution}]),/único/);
 });

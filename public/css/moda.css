@@ -69,3 +69,5 @@
 #tableSearchHelp { flex-basis:100%; color:#63758b; font-size:12px; }
 
 .fashion-batch-groups{max-height:340px;overflow:auto;margin:12px 0}.fashion-shell .fashion-batch-row{display:flex;align-items:flex-start;gap:10px;padding:12px;border-bottom:1px solid #dce7f1}.fashion-batch-row input{width:16px;height:16px;flex:0 0 16px;margin-top:3px}.fashion-batch-row small{display:block;color:#63758b;margin-top:5px;font-weight:400}#batchCurvePanel>label{margin:12px 0}#batchConfirmation{padding:12px;background:#eaf4fd;border-radius:10px;margin-top:12px}
+
+.fashion-template-row{display:flex;gap:10px;align-items:end;margin:10px 0}.fashion-template-row label{flex:1}.fashion-batch-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}.fashion-batch-filters .multi-options label{display:flex;align-items:center;gap:8px}.fashion-batch-filters input[type=checkbox]{width:16px;height:16px}.fashion-batch-filters .multi-options{z-index:20}@media(max-width:600px){.fashion-batch-filters{grid-template-columns:1fr}}
