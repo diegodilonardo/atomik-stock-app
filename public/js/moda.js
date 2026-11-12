@@ -251,7 +251,14 @@
     }catch(error){status(error.message,true);}
   };
   function invalidateBatch(){batchSnapshot=null;$('batchConfirmation').hidden=true;}
+  $('savedCurveTemplates').onclick=event=>{
+    const button=event.target.closest('[data-delete-template]');if(!button||busy||!admin)return;
+    curveTemplates=curveTemplates.filter(c=>c.id!==button.dataset.deleteTemplate);
+    batchSelected.clear();invalidateBatch();dirty=true;render();
+    status('Curva reutilizable eliminada. Las curvas ya aplicadas se conservan. Guardá la grilla para confirmar el cambio.');
+  };
   function renderBatch(){
+    $('savedCurveTemplates').innerHTML=curveTemplates.map(c=>'<div class="fashion-curve-card"><strong>'+escape(c.name)+'</strong><p>'+escape(c.distribution.map(p=>p.size+' × '+p.quantity).join(' / '))+'</p><button type="button" class="secondary" data-delete-template="'+escape(c.id)+'" '+(busy||!admin?'disabled':'')+'>Eliminar curva</button></div>').join('') || '<p>No hay curvas reutilizables guardadas.</p>';
     const previous=$('batchTemplate').value;
     $('batchTemplate').innerHTML='<option value="">Elegir curva guardada</option>'+availableTemplates().map(c=>'<option value="'+escape(c.id)+'">'+escape(c.name)+'</option>').join('');
     $('batchTemplate').value=availableTemplates().some(c=>c.id===previous)?previous:'';

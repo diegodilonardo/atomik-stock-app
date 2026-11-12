@@ -80,3 +80,11 @@ test('define y guarda plantillas sin productos y las aplica solo a los asignados
  assert.match(incomplete[0].reasons.join(' '),/XL: falta el talle/);
  for(const distribution of [[{size:'S',quantity:0}],[{size:'S',quantity:1},{size:'s',quantity:2}],[{size:'2X',quantity:1},{size:'XXL',quantity:1}]])assert.throws(()=>validateTemplates([{...template,distribution}]),/único/);
 });
+
+test('permite guardar la eliminación de la última plantilla sin productos',async()=>{
+ const input={name:'Grilla vacía',filters:{years:[],seasons:[]},items:[],curveTemplates:[],curves:[]};
+ const saved=validateSelection(input,[]);
+ assert.deepEqual(saved.curveTemplates,[]);
+ assert.deepEqual(saved.items,[]);
+ await assert.rejects(buildFashionWorkbook({},saved,[]),/Asigná productos/);
+});

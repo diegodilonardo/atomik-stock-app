@@ -85,7 +85,7 @@ function validateSelection(body, products) {
   if (!filters || !Array.isArray(filters.years) || !Array.isArray(filters.seasons) ||
       [...filters.years, ...filters.seasons].some(value => typeof value !== 'string' || value.length > 20)) throw invalid('Filtros de año y temporada inválidos');
   const curveTemplates=require('../../public/js/fashion-curves').validateTemplates(body.curveTemplates);
-  if (!Array.isArray(body.items) || (!body.items.length && !curveTemplates.length) || body.items.length > 10000) throw invalid('Seleccione productos y asígneles una categoría');
+  if (!Array.isArray(body.items) || body.items.length > 10000) throw invalid('Seleccione productos y asígneles una categoría');
   const byId = new Map(products.map(p => [p.id, p])), seen = new Set();
   const items = body.items.map(item => {
     const product = byId.get(item?.id);
