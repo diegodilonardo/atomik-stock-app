@@ -62,3 +62,10 @@
 
 .fashion-column-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
 #columnSaveHelp { color:#63758b; }
+
+.fashion-curve-parts{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}.fashion-curve-parts label{width:100px}.fashion-curve-card{padding:14px;margin-top:12px;border:1px solid #dce7f1;border-radius:10px;background:#f7fafd}#curveDraft{margin-top:14px;padding:14px;border:1px solid #dce7f1;border-radius:10px}
+
+.fashion-actions .fashion-table-search { flex:1 1 320px; max-width:520px; }
+#tableSearchHelp { flex-basis:100%; color:#63758b; font-size:12px; }
+
+.fashion-batch-groups{max-height:340px;overflow:auto;margin:12px 0}.fashion-shell .fashion-batch-row{display:flex;align-items:flex-start;gap:10px;padding:12px;border-bottom:1px solid #dce7f1}.fashion-batch-row input{width:16px;height:16px;flex:0 0 16px;margin-top:3px}.fashion-batch-row small{display:block;color:#63758b;margin-top:5px;font-weight:400}#batchCurvePanel>label{margin:12px 0}#batchConfirmation{padding:12px;background:#eaf4fd;border-radius:10px;margin-top:12px}

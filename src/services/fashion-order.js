@@ -5,15 +5,11 @@ function configureFashionOrder(workbook, counts) {
   const source = workbook.addWorksheet('CONSOLIDADO_MODA', { state:'veryHidden' });
   order.addRow(['CODIGO','COD_ALFA','CANTIDAD']);
   let index = 0;
-  for (const category of CATEGORIES) {
-    for (let r = 3; r <= counts[category] + 2; r++) {
-      index++;
-      for (const [col, ref] of [[1,'P'],[2,'Q'],[3,'N']]) {
-        source.getCell(index,col).value = { formula:`'${category}'!${ref}${r}`, result:col===3?0:'' };
-      }
-      source.getCell(index,4).value = { formula:`${index===1?'0':`D${index-1}`}+IF(C${index}>0,1,0)`,result:0 };
-      source.getCell(index,5).value = { formula:`IF(C${index}>0,D${index},0)`,result:0 };
-    }
+  for (const entry of orderEntries(workbook,counts)) {
+    index++;
+    writeOrderSource(source,index,entry,{code:'P',alpha:'Q',order:'N'});
+    source.getCell(index,4).value = {formula:(index===1?'0':'D'+(index-1))+'+IF(C'+index+'>0,1,0)',result:0};
+    source.getCell(index,5).value = {formula:'IF(C'+index+'>0,D'+index+',0)',result:0};
   }
   // Compact positive orders without FILTER spill formulas, for older Excel versions.
   for (let n = 1; n <= index; n++) {
@@ -40,4 +36,17 @@ function configureFashionOrder(workbook, counts) {
   order.pageSetup={orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:'1:1',printArea:`A1:C${index+1}`};
 }
 
-module.exports={configureFashionOrder};
+function orderEntries(workbook,counts) {
+  const entries=[];
+  for(const category of CATEGORIES)for(let row=3;row<=counts[category]+2;row++){
+    const parts=workbook.fashionRows?.[category]?.[row-3]?.VIRTUAL_PARTS;
+    for(const part of parts || [null])entries.push({category,row,part});
+  }
+  return entries;
+}
+function writeOrderSource(sheet,index,{category,row,part},letters){
+  sheet.getCell(index,1).value=part?part.code:{formula:"'"+category+"'!"+letters.code+row,result:''};
+  sheet.getCell(index,2).value=part?part.alpha:{formula:"'"+category+"'!"+letters.alpha+row,result:''};
+  sheet.getCell(index,3).value={formula:"'"+category+"'!"+letters.order+row+(part?'*'+part.quantity:''),result:0};
+}
+module.exports={configureFashionOrder,orderEntries,writeOrderSource};

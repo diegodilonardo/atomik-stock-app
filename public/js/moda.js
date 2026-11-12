@@ -5,6 +5,8 @@
   $('back').href = '/' + suffix;
   const headers = { 'Content-Type': 'application/json', ...(company ? { 'X-Company-ID': company } : {}) };
   let products = [], grids = [], current = null, page = 1, busy = false, dirty = false, admin = false;
+  let curves=[],curveDraft=[],batchRows=[],batchSnapshot=null;
+  const batchSelected=new Set();
   const assignments = new Map(), checked = new Set();
   const categories = ['DISCIPLINA','HOMBRE','DAMA','KIDS','SUELTOS','ACCESORIOS'];
   let columnOrder=[...FashionColumns.defaults], visibleColumns=new Set(columnOrder), excludedColumns=new Set();
@@ -118,28 +120,34 @@
   function visible() {
     const years = selected('years'), seasons = selected('seasons'), scope = $('scope').value;
     const stockMatches = p => !$('positiveStock').checked || (p.STOCK !== null && p.STOCK !== undefined && Number.isFinite(Number(p.STOCK)) && Number(p.STOCK)>0);
+    const normalizeSearch=value=>String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
+    const tableWords=normalizeSearch($('tableSearch').value).split(/\s+/).filter(Boolean);
+    const tableMatches=p=>tableWords.every(word=>normalizeSearch([p.DMODC,p.DCOLORC,p.DTALLC,p.TALLC,p.CODIGO,p.COD_ALFA].join(' ')).includes(word));
     // Review the entire assignment, even when browse filters hide some products.
     if (scope === 'assigned' || categories.includes(scope)) {
-      return products.filter(p => stockMatches(p) && (scope === 'assigned' ? assignments.has(p.id) : assignments.get(p.id) === scope));
+      return products.filter(p => tableMatches(p) && stockMatches(p) && (scope === 'assigned' ? assignments.has(p.id) : assignments.get(p.id) === scope));
     }
     const additional = Object.entries(extraFilters).map(([id,field])=>({field,values:selected(id)}));
     const words = $('search').value.toLocaleLowerCase().split(/\s+/).filter(Boolean);
-    return products.filter(p => stockMatches(p) && years.includes(p.COD_ANIO) && seasons.includes(p.COD_TEM) &&
+    return products.filter(p => tableMatches(p) && stockMatches(p) && years.includes(p.COD_ANIO) && seasons.includes(p.COD_TEM) &&
       additional.every(({field,values})=>!values.length || values.includes(filterValue(p, field))) &&
       words.every(w => `${p.DMODC} ${p.DCOLORC} ${p.COD_ALFA} ${p.CODIGO}`.toLocaleLowerCase().includes(w)) &&
       (scope === 'all' || (scope === 'assigned' ? assignments.has(p.id) : scope === 'unassigned' ? !assignments.has(p.id) : assignments.get(p.id) === scope)));
   }
   function render() {
+    invalidateBatch();
+    renderCurves();
     const list = visible().sort(productComparator()), pages = Math.max(1, Math.ceil(list.length / 50)); page = Math.min(page, pages);
     const rows = list.slice((page-1)*50, page*50);
-    $('rows').innerHTML = rows.map(p => `<tr><td><input type="checkbox" data-id="${p.id}" ${checked.has(p.id)?'checked':''} aria-label="Seleccionar ${escape(p.DMODC)} ${escape(p.DCOLORC)}"></td><td>${escape(p.COD_ANIO)}</td><td>${escape(p.DCOD_TEM)}</td><td>${escape(p.DMODC)}</td><td>${escape(p.DCOLORC)}</td><td>${escape(p.DTALLC)}</td><td>${p.PARES}</td><td>${escape(p.STOCK ?? 'Sin dato')}</td><td>${money(p.PRICE_WHOLESALE)}</td><td>${money(p.PRICE_PUBLIC)}</td><td>${escape(p.COD_ALFA)}</td><td>${escape(assignments.get(p.id)||'Sin asignar')}</td></tr>`).join('') || '<tr><td colspan="12">Seleccioná año y temporada. Si ya los elegiste, no hay productos para estos filtros.</td></tr>';
+    $('rows').innerHTML = rows.map(p => `<tr><td><input type="checkbox" data-id="${p.id}" ${checked.has(p.id)?'checked':''} aria-label="Seleccionar ${escape(p.DMODC)} ${escape(p.DCOLORC)}"></td><td>${escape(p.COD_ANIO)}</td><td>${escape(p.DCOD_TEM)}</td><td>${escape(p.DMODC)}</td><td>${escape(p.DCOLORC)}</td><td>${escape(p.DTALLC)}</td><td>${p.PARES}</td><td>${escape(p.STOCK ?? 'Sin dato')}</td><td>${money(p.PRICE_WHOLESALE)}</td><td>${money(p.PRICE_PUBLIC)}</td><td>${escape(p.COD_ALFA)}</td><td>${escape((assignments.get(p.id)||'Sin asignar')+(curves.some(c=>c.parts.some(part=>part.id===p.id))?' · Curva virtual':''))}</td></tr>`).join('') || '<tr><td colspan="12">Seleccioná año y temporada. Si ya los elegiste, no hay productos para estos filtros.</td></tr>';
     const scope = $('scope').value;
     const tabs = [['all','Explorar productos'],['assigned',`Ver asignados (${assignments.size})`],
       ...categories.map(c => [c,`${c}: ${[...assignments.values()].filter(v=>v===c).length}`])];
     $('counts').innerHTML = tabs.map(([value,label]) => `<button type="button" class="secondary" data-scope="${value}" aria-pressed="${scope===value}" ${busy?'disabled':''}>${label}</button>`).join('');
     const reviewing = scope === 'assigned' || categories.includes(scope);
     $('selectionViewHint').hidden = !reviewing;
-    $('selectionViewHint').textContent = 'Mostrando los productos asignados, sin aplicar los filtros de búsqueda, salvo Solo stock mayor a 0 si está activado. Podés seleccionarlos para cambiar su categoría o quitarlos. “Explorar productos” vuelve a tus filtros.';
+    $('selectionViewHint').textContent = 'Mostrando los productos asignados, con la búsqueda de esta vista y Solo stock mayor a 0 si está activado. Los filtros de año, temporada y demás opciones de exploración no se aplican aquí. Podés seleccionarlos para cambiar su categoría o quitarlos. “Explorar productos” vuelve a tus filtros.';
+    $('clearTableSearch').disabled=busy||!$('tableSearch').value;
     $('selectFiltered').textContent = `Seleccionar todos los ${reviewing ? 'resultados' : 'filtrados'} (${list.length})`;
     $('selectFiltered').disabled = busy || !list.length || list.every(p=>checked.has(p.id));
     $('clearSelection').disabled = busy || !checked.size;
@@ -155,10 +163,10 @@
     $('export').disabled = busy || !assignments.size;
     $('assign').disabled = $('remove').disabled = busy || !checked.size;
   }
-  function payload() { return { name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
+  function payload() { return { name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, curves, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
   function gridOptions() { setOptions('saved', [['','Nueva grilla'],...grids.map(g=>[String(g.id),g.name])], [String(current?.id || '')]); }
   function openGrid(grid) {
-    current = grid; assignments.clear(); checked.clear();
+    current = grid; batchSelected.clear();batchSnapshot=null;$('batchConfirmation').hidden=true;$('tableSearch').value=''; curves=structuredClone(grid?.curves || []); curveDraft=[];$('curveDraft').hidden=true; assignments.clear(); checked.clear();
     $('protectExcel').checked=grid?.protectExcel !== false;
     restoreColumns(grid?.columns, grid?.excludedColumns, grid?.columnOrder);
     const savedSort=FashionSort.normalize(grid?.sort);
@@ -214,10 +222,114 @@
   $('resetColumns').onclick=()=>{restoreColumns();dirty=true;};
   $('rows').onchange = e => { if(e.target.dataset.id) { if(e.target.checked) checked.add(e.target.dataset.id); else checked.delete(e.target.dataset.id); render(); } };
   $('selectFiltered').onclick = () => { if(busy)return; for(const product of visible()) checked.add(product.id); render(); };
+  $('tableSearch').oninput=()=>{checked.clear();page=1;render();};
+  $('clearTableSearch').onclick=()=>{$('tableSearch').value='';checked.clear();page=1;render();$('tableSearch').focus();};
   $('clearSelection').onclick = () => { if(busy)return; checked.clear();render(); };
   $('checkAll').onchange = () => { visible().sort(productComparator()).slice((page-1)*50,page*50).forEach(p=>{$('checkAll').checked?checked.add(p.id):checked.delete(p.id);});render(); };
-  $('assign').onclick = () => { for(const id of checked) assignments.set(id,$('category').value); checked.clear(); dirty=true;render(); };
-  $('remove').onclick = () => { for(const id of checked) assignments.delete(id);checked.clear();dirty=true;render(); };
+  $('assign').onclick = () => { if(!allowCurveEdit())return; for(const id of checked) assignments.set(id,$('category').value); checked.clear(); dirty=true;render(); };
+  $('remove').onclick = () => { if(!allowCurveEdit())return; curves=curves.filter(c=>!c.parts.every(p=>checked.has(p.id)));for(const id of checked) assignments.delete(id);checked.clear();dirty=true;render(); };
+  function invalidateBatch(){batchSnapshot=null;$('batchConfirmation').hidden=true;}
+  function renderBatch(){
+    const previous=$('batchTemplate').value;
+    $('batchTemplate').innerHTML='<option value="">Elegir curva guardada</option>'+curves.map(c=>'<option value="'+escape(c.id)+'">'+escape(c.name)+'</option>').join('');
+    $('batchTemplate').value=curves.some(c=>c.id===previous)?previous:'';
+    const template=curves.find(c=>c.id===$('batchTemplate').value);
+    const query=$('batchSearch').value.trim().toLocaleLowerCase('es').split(/\s+/).filter(Boolean);
+    const keys=[...new Set(visible().filter(p=>Number(p.NIVEL)===900&&Number(p.PARES)===1).filter(p=>query.every(w=>[p.DMODC,p.DCOLORC,p.COD_ANIO,p.DCOD_TEM,p.COD_TEM].join(' ').toLocaleLowerCase('es').includes(w))).map(FashionCurves.identity))];
+    try {batchRows=template?FashionCurves.planBatch(template,products,keys,curves):[];}
+    catch(error){batchRows=[];$('batchSummary').textContent=error.message;}
+    const allowed=new Set(batchRows.filter(r=>!r.reasons.length).map(r=>r.key));
+    for(const key of batchSelected)if(!allowed.has(key))batchSelected.delete(key);
+    $('batchGroups').innerHTML=batchRows.map((r,i)=>'<label class="fashion-batch-row"><input type="checkbox" data-batch="'+i+'" '+(batchSelected.has(r.key)?'checked':'')+' '+(r.reasons.length||busy?'disabled':'')+'><span><strong>'+escape([r.product?.DMODC,r.product?.DCOLORC].join(' · '))+'</strong><small>'+escape('Año '+(r.product?.COD_ANIO||'Sin dato')+' · Temporada '+(r.product?.DCOD_TEM||r.product?.COD_TEM||'Sin dato'))+'</small><small>'+escape(r.reasons.length?r.reasons.join('; '):r.parts.length+' talles disponibles · '+r.parts.reduce((n,p)=>n+p.quantity,0)+' pares por módulo')+'</small></span></label>').join('');
+    $('batchSummary').textContent=template?batchSelected.size+' combinaciones marcadas · '+batchRows.filter(r=>r.reasons.length).length+' pendientes por revisar.':'Primero creá o cargá una curva de esta grilla para reutilizarla.';
+    $('batchPreview').disabled=busy||!admin||!batchSelected.size;
+    $('batchSelectAll').disabled=busy||!admin||!allowed.size;
+    $('batchClear').disabled=busy||!batchSelected.size;
+  }
+  $('batchTemplate').onchange=()=>{batchSelected.clear();invalidateBatch();renderBatch();};
+  $('batchSearch').oninput=()=>{invalidateBatch();renderBatch();};
+  $('batchCategory').onchange=invalidateBatch;
+  $('batchGroups').onchange=event=>{const row=batchRows[Number(event.target.dataset.batch)];if(!row||row.reasons.length)return;if(event.target.checked)batchSelected.add(row.key);else batchSelected.delete(row.key);invalidateBatch();renderBatch();};
+  $('batchSelectAll').onclick=()=>{batchRows.filter(r=>!r.reasons.length).forEach(r=>batchSelected.add(r.key));invalidateBatch();renderBatch();};
+  $('batchClear').onclick=()=>{batchSelected.clear();invalidateBatch();renderBatch();};
+  $('batchPreview').onclick=()=>{
+    const template=curves.find(c=>c.id===$('batchTemplate').value);if(!template||!batchSelected.size)return;
+    batchSnapshot={templateId:template.id,keys:[...batchSelected],category:$('batchCategory').value};
+    $('batchPreviewText').textContent='Se crearán '+batchSelected.size+' módulos virtuales con la curva «'+template.name+'» en '+batchSnapshot.category+'. Sus talles se asignarán a esa categoría. Los productos con stock y las combinaciones pendientes no se modificarán.';
+    $('batchConfirmation').hidden=false;
+  };
+  $('batchApply').onclick=()=>{
+    if(busy||!admin||!batchSnapshot)return;
+    try{
+      const template=curves.find(c=>c.id===batchSnapshot.templateId);if(!template)throw new Error('La curva de origen cambió. Revisá nuevamente.');
+      const plan=FashionCurves.planBatch(template,products,batchSnapshot.keys,curves);
+      if(plan.some(r=>r.reasons.length))throw new Error('Cambió la disponibilidad de una combinación. Revisá la vista previa nuevamente.');
+      const next=new Map(assignments);
+      const additions=plan.map(r=>{r.parts.forEach(p=>next.set(p.id,batchSnapshot.category));return {id:Array.from(crypto.getRandomValues(new Uint32Array(4))).map(n=>n.toString(16)).join('-'),name:template.name,parts:r.parts};});
+      const validated=FashionCurves.validate([...curves,...additions],products,[...next].map(([id,category])=>({id,category})));
+      curves=validated;for(const [id,category] of next)assignments.set(id,category);
+      batchSelected.clear();invalidateBatch();checked.clear();dirty=true;render();status(additions.length+' curvas creadas. Guardá la grilla para conservarlas.');
+    }catch(error){invalidateBatch();renderBatch();status(error.message,true);}
+  };
+  function allowCurveEdit(){
+    if(curves.some(c=>c.parts.some(p=>checked.has(p.id))&&!c.parts.every(p=>checked.has(p.id)))){
+      status('Seleccioná todos los talles de la curva o desarmala antes de modificar sus productos.',true);return false;
+    }
+    return true;
+  }
+  function renderCurves(){
+    renderBatch();
+    $('prepareCurve').disabled=busy||!admin||!checked.size;
+    $('virtualCurves').innerHTML=curves.map(c=>{
+      const first=products.find(p=>p.id===c.parts[0]?.id);
+      const detail=c.parts.map(part=>{const p=products.find(p=>p.id===part.id);return (p?FashionCurves.size(p):'Ausente')+' × '+part.quantity;}).join(' / ');
+      const valid=c.parts.every(part=>{const p=products.find(p=>p.id===part.id);return p&&FashionCurves.eligible(p)&&assignments.has(part.id);});
+      return '<div class="fashion-curve-card"><strong>'+escape(c.name)+'</strong><p>'+escape((first?.DMODC||'')+' · '+(first?.DCOLORC||'')+' · '+detail)+'</p><p>'+c.parts.reduce((n,p)=>n+p.quantity,0)+' pares por módulo'+(valid?'':' · Revisar: producto ausente, sin asignar o con stock')+'</p><button type="button" class="secondary" data-dissolve="'+escape(c.id)+'" '+(busy||!admin?'disabled':'')+'>Desarmar curva</button></div>';
+    }).join('') || '<p>No hay curvas virtuales en esta grilla.</p>';
+  }
+  $('prepareCurve').onclick=()=>{
+    if(busy||!admin)return;
+    const chosen=products.filter(p=>checked.has(p.id));
+    if(!chosen.length||chosen.some(p=>!FashionCurves.eligible(p)))return status('Seleccioná solamente sueltos de un par con stock 0.',true);
+    if(chosen.some(p=>FashionCurves.identity(p)!==FashionCurves.identity(chosen[0])))return status('Seleccioná un único modelo y color, del mismo año y temporada.',true);
+    if(curves.some(c=>c.parts.some(p=>checked.has(p.id))))return status('Hay productos que ya pertenecen a una curva. Desarmala primero.',true);
+    curveDraft=chosen.sort((a,b)=>FashionSort.compareSizes(FashionCurves.size(a),FashionCurves.size(b)));
+    $('curveName').value='';
+    $('curveTemplate').innerHTML='<option value="">Definir cantidades</option>'+curves.map((c,i)=>'<option value="'+i+'">'+escape(c.name)+'</option>').join('');
+    $('curveParts').innerHTML=curveDraft.map(p=>'<label>'+escape(FashionCurves.size(p))+'<input type="number" min="1" max="1000" step="1" value="1" data-part="'+p.id+'"></label>').join('');
+    $('curveDraft').hidden=false;$('virtualCurvePanel').open=true;updateCurveTotal();
+    $('virtualCurvePanel').scrollIntoView({behavior:'smooth',block:'start'});
+  };
+  function draftParts(){return [...$('curveParts').querySelectorAll('[data-part]')].map(input=>({id:input.dataset.part,quantity:Number(input.value)}));}
+  function updateCurveTotal(){$('curveTotal').textContent='Total: '+draftParts().reduce((n,p)=>n+(Number.isFinite(p.quantity)?p.quantity:0),0)+' pares por módulo · Categoría: '+$('category').value;}
+  $('curveTemplate').onchange=()=>{
+    if($('curveTemplate').value==='')return;
+    const template=curves[Number($('curveTemplate').value)];
+    const parts=template.parts.map(part=>({product:products.find(p=>p.id===part.id),quantity:part.quantity}));
+    const inputs=[...$('curveParts').querySelectorAll('[data-part]')];
+    if(parts.some(p=>!p.product)||parts.length!==curveDraft.length||curveDraft.some(p=>!parts.some(part=>FashionSort.compareSizes(FashionCurves.size(part.product),FashionCurves.size(p))===0))){
+      $('curveTemplate').value='';return status('La distribución requiere los mismos talles. Seleccioná todos los talles necesarios.',true);
+    }
+    for(const input of inputs){const p=curveDraft.find(p=>p.id===input.dataset.part);input.value=parts.find(part=>FashionSort.compareSizes(FashionCurves.size(part.product),FashionCurves.size(p))===0).quantity;}
+    $('curveName').value=template.name;updateCurveTotal();
+  };
+  $('category').onchange=updateCurveTotal;
+  $('curveParts').oninput=updateCurveTotal;
+  $('cancelCurve').onclick=()=>{curveDraft=[];$('curveDraft').hidden=true;};
+  $('createCurve').onclick=()=>{
+    if(busy||!admin)return;
+    try{
+      const curve={id:Array.from(crypto.getRandomValues(new Uint32Array(4))).map(n=>n.toString(16)).join('-'),name:$('curveName').value,parts:draftParts()};
+      const next=new Map(assignments);curve.parts.forEach(p=>next.set(p.id,$('category').value));
+      const validated=FashionCurves.validate([...curves,curve],products,[...next].map(([id,category])=>({id,category})));
+      curves=validated;curve.parts.forEach(p=>assignments.set(p.id,$('category').value));
+      curveDraft=[];$('curveDraft').hidden=true;checked.clear();dirty=true;render();status('Curva creada. Guardá la grilla para conservarla.');
+    }catch(error){status(error.message,true);}
+  };
+  $('virtualCurves').onclick=event=>{
+    const button=event.target.closest('[data-dissolve]');if(!button||busy||!admin)return;
+    curves=curves.filter(c=>c.id!==button.dataset.dissolve);dirty=true;render();status('Curva desarmada. Sus productos siguen asignados como sueltos.');
+  };
   $('prev').onclick=()=>{page--;render();}; $('next').onclick=()=>{page++;render();};
   async function save(asNew) {
     status('Guardando grilla…');

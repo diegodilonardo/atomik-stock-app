@@ -20,16 +20,16 @@ function applyFashionLayout(workbook, columns, counts, excludedColumns, columnOr
     const snapshots=[];
     for(let r=2;r<=sheet.rowCount;r++) snapshots.push({r,cells:fields.map((field,i)=>{
       const cell=sheet.getCell(r,i+2);
-      return {key:field.key,value:structuredClone(cell.value),style:structuredClone(cell.style),validation:structuredClone(cell.dataValidation)};
+      return {key:field.key,value:structuredClone(cell.value),style:structuredClone(cell.style),validation:structuredClone(cell.dataValidation),note:structuredClone(cell.note)};
     })});
     for(const merge of [...sheet.model.merges])sheet.unMergeCells(merge);
     sheet.dataValidations.model={};
     for(let c=2;c<=fields.length+1;c++){sheet.getCell(1,c).value=null;sheet.getCell(1,c).style={};}
-    for(let r=2;r<=sheet.rowCount;r++) for(let c=2;c<=fields.length+1;c++) { sheet.getCell(r,c).value=null; sheet.getCell(r,c).style={}; }
+    for(let r=2;r<=sheet.rowCount;r++) for(let c=2;c<=fields.length+1;c++) { sheet.getCell(r,c).value=null; sheet.getCell(r,c).style={}; sheet.getCell(r,c).note=undefined; }
     for(const {r,cells} of snapshots) for(const cell of cells) {
       if(excluded.includes(cell.key)) continue;
       const target=sheet.getCell(r,positions[cell.key]);
-      target.value=cell.value;target.style=cell.style;
+      target.value=cell.value;target.style=cell.style;target.note=cell.note;
       if(cell.validation)target.dataValidation=cell.validation;
     }
     if(excluded.length) sheet.spliceColumns(ordered.length+2,excluded.length);
@@ -65,10 +65,9 @@ function applyFashionLayout(workbook, columns, counts, excludedColumns, columnOr
     const formulas=[`COUNTIF(${range('order')},">0")`,`SUM(${range('order')})`,
       `SUMPRODUCT(${range('pairs')},${range('order')})`,`SUM(${range('subtotal')})`];
     formulas.forEach((formula,j)=>{summary.getCell(i+6,j+4).value=counts[category]?{formula,result:0}:0;});
-    for(let r=3;r<=end;r++){
-      index++;
-      for(const [col,key] of [[1,'code'],[2,'alpha'],[3,'order']])consolidated.getCell(index,col).value={formula:`'${category}'!${letters[key]}${r}`,result:col===3?0:''};
-    }
+
   });
+  const {orderEntries,writeOrderSource}=require('./fashion-order');
+  for(const entry of orderEntries(workbook,counts))writeOrderSource(consolidated,++index,entry,letters);
 }
 module.exports={applyFashionLayout};
