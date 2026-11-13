@@ -1,10 +1,9 @@
 const {fields,normalize,normalizeExcluded,normalizeOrder}=require('../../public/js/fashion-columns');
-const {CATEGORIES}=require('./fashion-master');
 
 // Move values, styles and validation together, then rebuild all dependent formulas.
 // Omitted fields remain hidden to support the summary and order interchange sheet.
 function applyFashionLayout(workbook, columns, counts, excludedColumns, columnOrder) {
-  const categories=CATEGORIES.filter(category=>counts[category] > 0);
+  const categories=(counts.tabOrder || Object.keys(counts)).filter(category=>counts[category] > 0);
   const visible=normalize(columns);
   const excluded=normalizeExcluded(excludedColumns,visible);
   const ordered=normalizeOrder(columnOrder,visible).filter(key=>!excluded.includes(key));
@@ -61,7 +60,7 @@ function applyFashionLayout(workbook, columns, counts, excludedColumns, columnOr
   let index=0;
   categories.forEach((category,i)=>{
     const end=counts[category]+2;
-    const range=key=>`'${category}'!${letters[key]}3:${letters[key]}${end}`;
+    const range=key=>`'${category.replace(/'/g,"''")}'!${letters[key]}3:${letters[key]}${end}`;
     const formulas=[`COUNTIF(${range('order')},">0")`,`SUM(${range('order')})`,
       `SUMPRODUCT(${range('pairs')},${range('order')})`,`SUM(${range('subtotal')})`];
     formulas.forEach((formula,j)=>{summary.getCell(i+6,j+4).value=counts[category]?{formula,result:0}:0;});

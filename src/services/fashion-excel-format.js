@@ -1,6 +1,5 @@
 const crypto = require('node:crypto');
 const profile = require('./excel-format.json');
-const { CATEGORIES } = require('./fashion-master');
 const clone = value => structuredClone(value);
 function borderRange(sheet, firstRow, lastRow, firstCol, lastCol) {
   for (let r = firstRow; r <= lastRow; r++) for (let c = firstCol; c <= lastCol; c++) {
@@ -16,7 +15,7 @@ function configureFashionSummary(workbook, counts) {
   reference.columns.forEach((column, i) => Object.assign(sheet.getColumn(i + 1), clone(column)));
   for (const merge of reference.merges) sheet.mergeCells(merge);
   // Allocate one summary row per category.
-  const categories = CATEGORIES.filter(category=>counts[category] > 0);
+  const categories = (counts.tabOrder || Object.keys(counts)).filter(category=>counts[category] > 0);
   const totalRow = 6 + categories.length;
   for (let row = 1; row <= totalRow; row++) {
     const source = reference.rows[row === totalRow ? 8 : Math.min(row - 1, 7)];
@@ -33,10 +32,10 @@ function configureFashionSummary(workbook, counts) {
     sheet.getCell(row, 3).alignment = { ...sheet.getCell(row, 3).alignment, wrapText:true };
     if (category.length > 16) sheet.getRow(row).height = Math.max(sheet.getRow(row).height || 0, 42);
     const formulas = [
-      `COUNTIF('${category}'!N3:N${end},">0")`,
-      `SUM('${category}'!N3:N${end})`,
-      `SUMPRODUCT('${category}'!K3:K${end},'${category}'!N3:N${end})`,
-      `SUM('${category}'!O3:O${end})`
+      `COUNTIF('${category.replace(/'/g,"''")}'!N3:N${end},">0")`,
+      `SUM('${category.replace(/'/g,"''")}'!N3:N${end})`,
+      `SUMPRODUCT('${category.replace(/'/g,"''")}'!K3:K${end},'${category.replace(/'/g,"''")}'!N3:N${end})`,
+      `SUM('${category.replace(/'/g,"''")}'!O3:O${end})`
     ];
     formulas.forEach((formula, j) => {
       sheet.getCell(row, j + 4).value = counts[category] ? { formula, result: 0 } : 0;
@@ -55,7 +54,7 @@ async function formatAndProtectFashion(workbook, counts, protectExcel = true) {
   const reference = profile.sheets.MODULOS;
   // Map each Moda column to its equivalent style in the stock grid.
   const columns = [1,2,2,3,4,5,7,8,9,20,15,16,12,17,10,11,20,20];
-  for (const category of CATEGORIES) {
+  for (const category of (counts.tabOrder || Object.keys(counts))) {
     const sheet = workbook.getWorksheet(category);
     if (!sheet) continue;
     for (let row = 1; row <= counts[category] + 2; row++) {
@@ -87,7 +86,7 @@ async function formatAndProtectFashion(workbook, counts, protectExcel = true) {
   const password = process.env.FASHION_EXCEL_PASSWORD || crypto.randomBytes(24).toString('hex');
   for (const sheet of workbook.worksheets) {
     sheet.eachRow(row => row.eachCell(cell => { cell.protection = { locked:true }; }));
-    if (CATEGORIES.includes(sheet.name)) {
+    if (Object.hasOwn(counts,sheet.name)) {
       for (let row = 3; row <= counts[sheet.name] + 2; row++) sheet.getCell(row, 14).protection = { locked:false };
     }
     if (protectExcel) await sheet.protect(password, { selectLockedCells:true, selectUnlockedCells:true,

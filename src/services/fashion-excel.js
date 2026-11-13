@@ -1,6 +1,6 @@
 const ExcelJS = require('exceljs');
 const { create } = require('../../public/js/fashion-sort');
-const { CATEGORIES, validateSelection } = require('./fashion-master');
+const { validateSelection } = require('./fashion-master');
 const { loadImageIndex, embedProductImages } = require('./product-images');
 
 async function buildFashionWorkbook(company, selection, products) {
@@ -16,8 +16,9 @@ async function buildFashionWorkbook(company, selection, products) {
   let index = new Map();
   if (company.IMAGE_DIRECTORY && valid.columns.includes('image')) index = await loadImageIndex(company.IMAGE_DIRECTORY);
   const cache = new Map();
-  const counts = {};
-  for (const category of CATEGORIES) {
+  const counts = Object.create(null);
+  Object.defineProperty(counts,'tabOrder',{value:valid.tabs});
+  for (const category of valid.tabs) {
     const rows = expanded.items.filter(item => item.category === category).map(item => byId.get(item.id)).sort(compare);
     workbook.fashionRows[category]=rows;
     counts[category] = rows.length;

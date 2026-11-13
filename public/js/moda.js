@@ -8,7 +8,7 @@
   let curveTemplates=[],curves=[],curveDraft=[],batchRows=[],batchSnapshot=null;
   const batchSelected=new Set();
   const assignments = new Map(), checked = new Set();
-  const categories = ['DISCIPLINA','HOMBRE','DAMA','KIDS','SUELTOS','ACCESORIOS'];
+  let categories = [...FashionTabs.defaults];
   let columnOrder=[...FashionColumns.defaults], visibleColumns=new Set(columnOrder), excludedColumns=new Set();
   function restoreColumns(columns, excluded, order) {
     const selected=FashionColumns.normalize(columns);
@@ -71,7 +71,7 @@
     $('workspace').setAttribute('aria-busy','true');
     document.querySelectorAll('button,input,select').forEach(el => el.disabled = true);
     try { await task(); } catch (error) { status(error.message, true); }
-    finally { busy = false; $('workspace').setAttribute('aria-busy','false'); document.querySelectorAll('button,input,select').forEach(el => el.disabled = false); render(); renderColumns(); }
+    finally { busy = false; $('workspace').setAttribute('aria-busy','false'); document.querySelectorAll('button,input,select').forEach(el => el.disabled = false); render(); renderColumns(); renderTabs(); }
   }
   function setOptions(id, options, chosen) {
     if (pickers[id]) {
@@ -143,7 +143,7 @@
     const scope = $('scope').value;
     const tabs = [['all','Explorar productos'],['assigned',`Ver asignados (${assignments.size})`],
       ...categories.map(c => [c,`${c}: ${[...assignments.values()].filter(v=>v===c).length}`])];
-    $('counts').innerHTML = tabs.map(([value,label]) => `<button type="button" class="secondary" data-scope="${value}" aria-pressed="${scope===value}" ${busy?'disabled':''}>${label}</button>`).join('');
+    $('counts').innerHTML = tabs.map(([value,label]) => `<button type="button" class="secondary" data-scope="${escape(value)}" aria-pressed="${scope===value}" ${busy?'disabled':''}>${escape(label)}</button>`).join('');
     const reviewing = scope === 'assigned' || categories.includes(scope);
     $('selectionViewHint').hidden = !reviewing;
     $('selectionViewHint').textContent = 'Mostrando los productos asignados, con la búsqueda de esta vista y Solo stock mayor a 0 si está activado. Los filtros de año, temporada y demás opciones de exploración no se aplican aquí. Podés seleccionarlos para cambiar su categoría o quitarlos. “Explorar productos” vuelve a tus filtros.';
@@ -163,9 +163,33 @@
     $('export').disabled = busy || !assignments.size;
     $('assign').disabled = $('remove').disabled = busy || !checked.size;
   }
-  function payload() { return { name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, curveTemplates, curves, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
+
+  function renderTabs(){
+    for(const id of ['category','batchCategory','scope']){
+      const old=$(id).value;
+      const options=id==='scope'?[['all','Todos'],['assigned','Asignados'],['unassigned','Sin asignar']]:[];
+      setOptions(id,[...options,...categories.map(c=>[c,c])],[old]);
+      if(!$(id).value)$(id).value=id==='scope'?'all':categories[0];
+    }
+    $('gridTabs').replaceChildren();
+    categories.forEach((name,index)=>{
+      const row=document.createElement('div');row.className='fashion-tab-row';
+      const input=document.createElement('input');input.value=name;input.maxLength=31;input.setAttribute('aria-label','Nombre de solapa '+name);row.append(input);
+      const button=(label,action,disabled=false)=>{const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=label;b.disabled=disabled;b.onclick=()=>{if(busy)return;try{action();}catch(e){status(e.message,true);}};row.append(b);};
+      button('Renombrar',()=>{const next=[...categories];next[index]=input.value;const valid=FashionTabs.normalize(next);const renamed=valid[index];for(const [id,c] of assignments)if(c===name)assignments.set(id,renamed);for(const id of ['scope','category','batchCategory'])if($(id).value===name){const option=new Option(renamed,renamed,true,true);$(id).add(option);}categories=valid;tabsChanged();});
+      for(const [label,step] of [['↑',-1],['↓',1]])button(label,()=>{[categories[index],categories[index+step]]=[categories[index+step],categories[index]];tabsChanged();},index+step<0||index+step>=categories.length);
+      const target=document.createElement('select');target.setAttribute('aria-label','Trasladar productos de '+name);target.add(new Option('Trasladar productos a…',''));categories.filter(c=>c!==name).forEach(c=>target.add(new Option(c,c)));row.append(target);
+      button('Eliminar',()=>{if(categories.length===1)return;const occupied=[...assignments.values()].includes(name);if(occupied&&!target.value)throw new Error('Elegí una solapa de destino para conservar los productos y sus curvas.');if(!confirm('¿Eliminar la solapa '+name+(occupied?' y trasladar sus productos a '+target.value:'')+'?'))return;for(const [id,c] of assignments)if(c===name)assignments.set(id,target.value);categories=categories.filter(c=>c!==name);tabsChanged();},categories.length===1);
+      $('gridTabs').append(row);
+    });
+  }
+  function tabsChanged(){dirty=true;checked.clear();batchSelected.clear();batchModels.setValues([]);batchColors.setValues([]);invalidateBatch();renderTabs();render();status('Solapas actualizadas. Guardá los cambios de la grilla.');}
+  $('addTab').onclick=()=>{if(busy)return;try{categories=FashionTabs.normalize([...categories,$('newTabName').value]);$('newTabName').value='';tabsChanged();}catch(e){status(e.message,true);}};
+
+  function payload() { return { tabs:[...categories], name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, curveTemplates, curves, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
   function gridOptions() { setOptions('saved', [['','Nueva grilla'],...grids.map(g=>[String(g.id),g.name])], [String(current?.id || '')]); }
   function openGrid(grid) {
+    categories=FashionTabs.normalize(grid?.tabs);renderTabs();
     current = grid; $('curveModelFilter').value='';batchSelected.clear();batchSnapshot=null;$('batchConfirmation').hidden=true;$('tableSearch').value=''; curveTemplates=structuredClone(grid?.curveTemplates || []);batchModels.setValues([]);batchColors.setValues([]);curves=structuredClone(grid?.curves || []); curveDraft=[];$('curveDraft').hidden=true; assignments.clear(); checked.clear();
     $('protectExcel').checked=grid?.protectExcel !== false;
     restoreColumns(grid?.columns, grid?.excludedColumns, grid?.columnOrder);
@@ -175,7 +199,7 @@
     renderSort();
     $('scope').value = grid ? 'assigned' : 'all';
     clearExtraFilters();
-    for (const item of grid?.items || []) assignments.set(item.id,item.category === 'SUELTOS Y ACCESORIOS' ? 'SUELTOS' : item.category);
+    for (const item of grid?.items || []) assignments.set(item.id,!grid?.tabs && item.category === 'SUELTOS Y ACCESORIOS' ? 'SUELTOS' : item.category);
     $('name').value = grid?.name || ''; masterOptions(grid?.filters || {years:[],seasons:[]}); page=1; dirty=false; render();
     const missing = [...assignments.keys()].filter(id=>!products.some(p=>p.id===id));
     status(missing.length ? `${missing.length} productos ya no están en el maestro. Actualizá la selección con “Quitar ausentes” antes de guardar o exportar.` : grid ? 'Grilla cargada. Se usarán los precios actuales del maestro.' : 'Elegí año y temporada para comenzar.', !!missing.length);
@@ -424,7 +448,7 @@
     admin=user.role==='ADMIN';document.querySelectorAll('.editor').forEach(el=>el.hidden=!admin);
     const data=await (await request('fashion/master')).json();products=data.products;
     grids=(await (await request('fashion/grids')).json()).data;
-    masterOptions();gridOptions();$('workspace').hidden=false;
+    renderTabs();masterOptions();gridOptions();$('workspace').hidden=false;
     status(`Maestro disponible: ${products.length} productos. Elegí año y temporada para comenzar.`);
   });
 })();

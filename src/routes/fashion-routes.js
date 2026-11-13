@@ -35,7 +35,7 @@ for (const method of ['post', 'put']) router[method](method === 'post' ? '/grids
     const pool = await getPool();
     const request = pool.request().input('company', sql.Int, req.user.companyId).input('user', sql.Int, req.user.id)
       .input('name', sql.NVarChar(150), selection.name)
-      .input('selection', sql.NVarChar(sql.MAX), JSON.stringify({ filters: selection.filters, items: selection.items, curves: selection.curves, curveTemplates: selection.curveTemplates, columns: selection.columns, protectExcel: selection.protectExcel, columnOrder: selection.columnOrder, excludedColumns: selection.excludedColumns, sort: selection.sort }));
+      .input('selection', sql.NVarChar(sql.MAX), JSON.stringify({ tabs: selection.tabs, filters: selection.filters, items: selection.items, curves: selection.curves, curveTemplates: selection.curveTemplates, columns: selection.columns, protectExcel: selection.protectExcel, columnOrder: selection.columnOrder, excludedColumns: selection.excludedColumns, sort: selection.sort }));
     let result;
     if (method === 'post') result = await request.query(`INSERT dbo.FASHION_GRIDS(ID_EMPRESA,NAME,SELECTION_JSON,UPDATED_BY)
       OUTPUT INSERTED.* VALUES(@company,@name,@selection,@user)`);

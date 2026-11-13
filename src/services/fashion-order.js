@@ -1,4 +1,3 @@
-const { CATEGORIES } = require('./fashion-master');
 
 function configureFashionOrder(workbook, counts) {
   const order = workbook.addWorksheet('PEDIDO', { properties:{tabColor:{argb:'FF1769AA'}} });
@@ -38,15 +37,15 @@ function configureFashionOrder(workbook, counts) {
 
 function orderEntries(workbook,counts) {
   const entries=[];
-  for(const category of CATEGORIES)for(let row=3;row<=counts[category]+2;row++){
+  for(const category of (counts.tabOrder || Object.keys(counts)))for(let row=3;row<=counts[category]+2;row++){
     const parts=workbook.fashionRows?.[category]?.[row-3]?.VIRTUAL_PARTS;
     for(const part of parts || [null])entries.push({category,row,part});
   }
   return entries;
 }
 function writeOrderSource(sheet,index,{category,row,part},letters){
-  sheet.getCell(index,1).value=part?part.code:{formula:"'"+category+"'!"+letters.code+row,result:''};
-  sheet.getCell(index,2).value=part?part.alpha:{formula:"'"+category+"'!"+letters.alpha+row,result:''};
-  sheet.getCell(index,3).value={formula:"'"+category+"'!"+letters.order+row+(part?'*'+part.quantity:''),result:0};
+  sheet.getCell(index,1).value=part?part.code:{formula:"'"+category.replace(/'/g,"''")+"'!"+letters.code+row,result:''};
+  sheet.getCell(index,2).value=part?part.alpha:{formula:"'"+category.replace(/'/g,"''")+"'!"+letters.alpha+row,result:''};
+  sheet.getCell(index,3).value={formula:"'"+category.replace(/'/g,"''")+"'!"+letters.order+row+(part?'*'+part.quantity:''),result:0};
 }
 module.exports={configureFashionOrder,orderEntries,writeOrderSource};

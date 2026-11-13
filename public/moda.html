@@ -19,6 +19,13 @@
     <button id="export" class="primary">Descargar Excel</button><button id="refresh" class="secondary editor">Actualizar maestro</button>
     <button id="archive" class="secondary editor" disabled>Anular grilla</button>
   </section>
+  <details class="panel fashion-columns editor">
+    <summary>Solapas de esta grilla</summary>
+    <p>Creá, renombrá y ordená las solapas. RESUMEN y PEDIDO son automáticas. Las solapas vacías no se exportan.</p>
+    <div class="fashion-controls"><label>Nueva solapa<input id="newTabName" maxlength="31" placeholder="Ej.: DEPORTIVOS"></label><button id="addTab" type="button" class="secondary">Agregar solapa</button></div>
+    <div id="gridTabs"></div>
+    <p>Guardá los cambios de la grilla para conservar esta configuración.</p>
+  </details>
   <details class="panel fashion-columns">
     <summary>Columnas del Excel</summary>
     <p>Elegí Mostrar, Ocultar o No incluir para cada campo y usá ↑ / ↓ para ordenar los campos. Los ocultos conservan su posición. Los campos ocultos se conservan en el Excel y siguen disponibles para los cálculos, RESUMEN y PEDIDO. No incluir elimina la columna del Excel; los campos necesarios para cálculos y PEDIDO solo pueden ocultarse. Pedido siempre queda visible. La configuración se aplica a todas las categorías y se guarda con la grilla.</p>
@@ -108,4 +115,4 @@
     <div class="pagination"><span id="pageInfo"></span><div><button id="prev" class="secondary">Anterior</button><button id="next" class="secondary">Siguiente</button></div></div>
   </section>
   </div>
-</main><script src="/js/multi-select.js"></script><script src="/js/fashion-columns.js"></script><script src="/js/fashion-sort.js"></script><script src="/js/fashion-curves.js"></script><script src="/js/moda.js"></script></body></html>
+</main><script src="/js/multi-select.js"></script><script src="/js/fashion-columns.js"></script><script src="/js/fashion-sort.js"></script><script src="/js/fashion-curves.js"></script><script src="/js/fashion-tabs.js"></script><script src="/js/moda.js"></script></body></html>

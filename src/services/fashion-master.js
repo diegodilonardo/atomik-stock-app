@@ -84,20 +84,21 @@ function validateSelection(body, products) {
   const filters = body.filters;
   if (!filters || !Array.isArray(filters.years) || !Array.isArray(filters.seasons) ||
       [...filters.years, ...filters.seasons].some(value => typeof value !== 'string' || value.length > 20)) throw invalid('Filtros de año y temporada inválidos');
+  const tabs=require('../../public/js/fashion-tabs').normalize(body.tabs);
   const curveTemplates=require('../../public/js/fashion-curves').validateTemplates(body.curveTemplates);
   if (!Array.isArray(body.items) || body.items.length > 10000) throw invalid('Seleccione productos y asígneles una categoría');
   const byId = new Map(products.map(p => [p.id, p])), seen = new Set();
   const items = body.items.map(item => {
     const product = byId.get(item?.id);
     if (!product) throw invalid('Hay productos que ya no están en el maestro. Revise la selección.');
-    const category = item.category === 'SUELTOS Y ACCESORIOS' ? 'SUELTOS' : item.category;
-    if (seen.has(item.id) || !CATEGORIES.includes(category)) throw invalid('Categoría inválida o producto repetido');
+    const category = !body.tabs && item.category === 'SUELTOS Y ACCESORIOS' ? 'SUELTOS' : item.category;
+    if (seen.has(item.id) || !tabs.includes(category)) throw invalid('Categoría inválida o producto repetido');
     seen.add(item.id);
     return { id: item.id, category };
   });
   if(body.protectExcel !== undefined && typeof body.protectExcel !== 'boolean') throw invalid('La opción de protección del Excel debe ser verdadera o falsa');
   const columns = require('../../public/js/fashion-columns').normalize(body.columns);
-  return { name: body.name.trim(), filters: { years: [...new Set(filters.years)], seasons: [...new Set(filters.seasons)] }, items, curveTemplates, curves: require('../../public/js/fashion-curves').validate(body.curves,products,items), columns, protectExcel: body.protectExcel !== false, columnOrder: require('../../public/js/fashion-columns').normalizeOrder(body.columnOrder, columns), excludedColumns: require('../../public/js/fashion-columns').normalizeExcluded(body.excludedColumns, columns), sort: require('../../public/js/fashion-sort').normalize(body.sort) };
+  return { tabs, name: body.name.trim(), filters: { years: [...new Set(filters.years)], seasons: [...new Set(filters.seasons)] }, items, curveTemplates, curves: require('../../public/js/fashion-curves').validate(body.curves,products,items), columns, protectExcel: body.protectExcel !== false, columnOrder: require('../../public/js/fashion-columns').normalizeOrder(body.columnOrder, columns), excludedColumns: require('../../public/js/fashion-columns').normalizeExcluded(body.excludedColumns, columns), sort: require('../../public/js/fashion-sort').normalize(body.sort) };
 }
 
 module.exports = { CATEGORIES, parseMaster, loadMaster, validateSelection, invalid };
