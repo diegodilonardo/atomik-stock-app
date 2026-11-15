@@ -23,14 +23,15 @@
     const hidden=columnOrder.filter(key=>!visibleColumns.has(key)&&!excludedColumns.has(key)).map(key=>labels.get(key));
     $('columnsPreview').textContent='Orden visible: '+columnOrder.filter(key=>visibleColumns.has(key)).map(key=>labels.get(key)).join(' → ') + (hidden.length ? '. Ocultos (conservados para cálculos): '+hidden.join(', ') : '') + (excludedColumns.size ? '. No incluidos: '+[...excludedColumns].map(key=>labels.get(key)).join(', ') : '');
   }
+  let manualSort={enabled:false,orders:[]};
   let sortRules = FashionSort.fields.map(f=>({field:f.key,direction:'asc'}));
   function renderSort() {
     $('sortRules').hidden = !$('customSort').checked;
     $('sortRules').innerHTML = sortRules.map((rule,i)=>`<div><label>Prioridad ${i+1}<select data-sort-field="${i}">${FashionSort.fields.map(f=>`<option value="${f.key}" ${f.key===rule.field?'selected':''}>${f.label}</option>`).join('')}</select></label><select data-sort-direction="${i}" aria-label="Dirección prioridad ${i+1}"><option value="asc" ${rule.direction==='asc'?'selected':''}>Ascendente</option><option value="desc" ${rule.direction==='desc'?'selected':''}>Descendente</option></select></div>`).join('');
   }
-  function currentSort() { return $('customSort').checked ? sortRules : null; }
-  function productComparator() { return FashionSort.create(currentSort(),p=>assignments.get(p.id)||'Sin asignar'); }
-  $('customSort').onchange=()=>{dirty=true;page=1;renderSort();render();};
+  function currentSort() { return $('customSort').checked || manualSort.enabled ? sortRules : null; }
+  function productComparator() { if(manualSort.enabled)return FashionManualSort.create(manualSort,categories,p=>assignments.get(p.id)||'Sin asignar');return FashionSort.create(currentSort(),p=>assignments.get(p.id)||'Sin asignar'); }
+  $('customSort').onchange=()=>{if($('customSort').checked){manualSort.enabled=false;$('manualSortEnabled').checked=false;}dirty=true;page=1;renderSort();render();};
   $('sortRules').onchange=event=>{
     const fieldIndex=event.target.dataset.sortField;
     if(fieldIndex!==undefined) {
@@ -136,6 +137,7 @@
   }
   function render() {
     invalidateBatch();
+    renderManualSort();
     renderCurves();
     const list = visible().sort(productComparator()), pages = Math.max(1, Math.ceil(list.length / 50)); page = Math.min(page, pages);
     const rows = list.slice((page-1)*50, page*50);
@@ -176,25 +178,63 @@
       const row=document.createElement('div');row.className='fashion-tab-row';
       const input=document.createElement('input');input.value=name;input.maxLength=31;input.setAttribute('aria-label','Nombre de solapa '+name);row.append(input);
       const button=(label,action,disabled=false)=>{const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=label;b.disabled=disabled;b.onclick=()=>{if(busy)return;try{action();}catch(e){status(e.message,true);}};row.append(b);};
-      button('Renombrar',()=>{const next=[...categories];next[index]=input.value;const valid=FashionTabs.normalize(next);const renamed=valid[index];for(const [id,c] of assignments)if(c===name)assignments.set(id,renamed);for(const id of ['scope','category','batchCategory'])if($(id).value===name){const option=new Option(renamed,renamed,true,true);$(id).add(option);}categories=valid;tabsChanged();});
+      button('Renombrar',()=>{const next=[...categories];next[index]=input.value;const valid=FashionTabs.normalize(next);const renamed=valid[index];for(const [id,c] of assignments)if(c===name)assignments.set(id,renamed);for(const id of ['scope','category','batchCategory'])if($(id).value===name){const option=new Option(renamed,renamed,true,true);$(id).add(option);}manualSort.orders.forEach(r=>{if(r.category===name)r.category=renamed;});categories=valid;tabsChanged();});
       for(const [label,step] of [['↑',-1],['↓',1]])button(label,()=>{[categories[index],categories[index+step]]=[categories[index+step],categories[index]];tabsChanged();},index+step<0||index+step>=categories.length);
       const target=document.createElement('select');target.setAttribute('aria-label','Trasladar productos de '+name);target.add(new Option('Trasladar productos a…',''));categories.filter(c=>c!==name).forEach(c=>target.add(new Option(c,c)));row.append(target);
-      button('Eliminar',()=>{if(categories.length===1)return;const occupied=[...assignments.values()].includes(name);if(occupied&&!target.value)throw new Error('Elegí una solapa de destino para conservar los productos y sus curvas.');if(!confirm('¿Eliminar la solapa '+name+(occupied?' y trasladar sus productos a '+target.value:'')+'?'))return;for(const [id,c] of assignments)if(c===name)assignments.set(id,target.value);categories=categories.filter(c=>c!==name);tabsChanged();},categories.length===1);
+      button('Eliminar',()=>{if(categories.length===1)return;const occupied=[...assignments.values()].includes(name);if(occupied&&!target.value)throw new Error('Elegí una solapa de destino para conservar los productos y sus curvas.');if(!confirm('¿Eliminar la solapa '+name+(occupied?' y trasladar sus productos a '+target.value:'')+'?'))return;for(const [id,c] of assignments)if(c===name)assignments.set(id,target.value);manualSort.orders=manualSort.orders.filter(r=>r.category!==name);categories=categories.filter(c=>c!==name);tabsChanged();},categories.length===1);
       $('gridTabs').append(row);
     });
   }
   function tabsChanged(){dirty=true;checked.clear();batchSelected.clear();batchModels.setValues([]);batchColors.setValues([]);invalidateBatch();renderTabs();render();status('Solapas actualizadas. Guardá los cambios de la grilla.');}
   $('addTab').onclick=()=>{if(busy)return;try{categories=FashionTabs.normalize([...categories,$('newTabName').value]);$('newTabName').value='';tabsChanged();}catch(e){status(e.message,true);}};
 
-  function payload() { return { tabs:[...categories], name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, curveTemplates, curves, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
+
+  function renderManualSort(){
+    $('manualSortPanel').hidden=!manualSort.enabled;
+    if(!manualSort.enabled)return;
+    const availableIds=new Set(products.map(p=>p.id));
+    const usableCurves=curves.filter(c=>c.parts.every(p=>availableIds.has(p.id)&&assignments.has(p.id)));
+    const expanded=FashionCurves.materialize({items:[...assignments].map(([id,category])=>({id,category})),curves:usableCurves},products);
+    FashionManualSort.sync(manualSort,expanded.items,expanded.products);
+    const byId=new Map(expanded.products.map(p=>[p.id,p]));
+    const oldTab=$('manualSortTab').value;setOptions('manualSortTab',categories.map(c=>[c,c]),[oldTab]);
+    const tab=$('manualSortTab').value;
+    const rows=expanded.items.filter(i=>i.category===tab).map(i=>byId.get(i.id)).filter(Boolean);
+    const values=(field,list)=>[...new Set(list.map(p=>String(p[field]|| (field==='DTALLC'?p.TALLC:'')||'')))];
+    const ordered=(model,color,available)=>{const rule=manualSort.orders.find(r=>r.category===tab&&r.model===model&&r.color===color);return {rule,values:(rule?.values||[]).filter(v=>available.includes(v))};};
+    const draw=(id,group)=>{
+      $(id).replaceChildren();
+      if(!group.values.length){$(id).textContent='Sin productos asignados';return;}
+      group.values.forEach((value,index)=>{
+        const row=document.createElement('div');row.className='manual-sort-row';
+        const label=document.createElement('span');label.textContent=value||'Sin dato';row.append(label);
+        for(const [text,step] of [['↑',-1],['↓',1]]){
+          const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=text;b.setAttribute('aria-label',(step<0?'Subir ':'Bajar ')+value);b.disabled=busy||index+step<0||index+step>=group.values.length;
+          b.onclick=()=>{if(busy||index+step<0||index+step>=group.values.length)return;const other=group.values[index+step],a=group.rule.values.indexOf(value),z=group.rule.values.indexOf(other);[group.rule.values[a],group.rule.values[z]]=[group.rule.values[z],group.rule.values[a]];dirty=true;page=1;render();};row.append(b);
+        }$(id).append(row);
+      });
+    };
+    const models=ordered(null,null,values('DMODC',rows));draw('manualModels',models);
+    const oldModel=$('manualModel').value;setOptions('manualModel',models.values.map(v=>[v,v||'Sin dato']),[oldModel]);
+    const model=$('manualModel').value,modelRows=rows.filter(p=>String(p.DMODC||'')===model);
+    const colors=ordered(model,null,values('DCOLORC',modelRows));draw('manualColors',colors);
+    const oldColor=$('manualColor').value;setOptions('manualColor',colors.values.map(v=>[v,v||'Sin dato']),[oldColor]);
+    const color=$('manualColor').value;draw('manualCurves',ordered(model,color,values('DTALLC',modelRows.filter(p=>String(p.DCOLORC||'')===color))));
+  }
+  $('manualSortEnabled').onchange=()=>{manualSort.enabled=$('manualSortEnabled').checked;if(manualSort.enabled)$('customSort').checked=false;dirty=true;page=1;renderSort();render();};
+  for(const id of ['manualSortTab','manualModel','manualColor'])$(id).onchange=renderManualSort;
+  $('resetManualSort').onclick=()=>{if(busy||!confirm('¿Restablecer el orden de todas las solapas a Modelo → Color → Curva?'))return;manualSort={enabled:false,orders:[]};$('manualSortEnabled').checked=false;$('customSort').checked=false;dirty=true;page=1;renderSort();render();};
+
+  function payload() { return { manualSort, tabs:[...categories], name:$('name').value, filters:{years:selected('years'),seasons:selected('seasons')}, curveTemplates, curves, items:[...assignments].map(([id,category])=>({id,category})), columns:columnOrder.filter(key=>visibleColumns.has(key)), columnOrder:[...columnOrder], excludedColumns:[...excludedColumns], protectExcel:$('protectExcel').checked, version:current?.version, sort:currentSort() }; }
   function gridOptions() { setOptions('saved', [['','Nueva grilla'],...grids.map(g=>[String(g.id),g.name])], [String(current?.id || '')]); }
   function openGrid(grid) {
     categories=FashionTabs.normalize(grid?.tabs);renderTabs();
     current = grid; $('curveModelFilter').value='';batchSelected.clear();batchSnapshot=null;$('batchConfirmation').hidden=true;$('tableSearch').value=''; curveTemplates=structuredClone(grid?.curveTemplates || []);batchModels.setValues([]);batchColors.setValues([]);curves=structuredClone(grid?.curves || []); curveDraft=[];$('curveDraft').hidden=true; assignments.clear(); checked.clear();
     $('protectExcel').checked=grid?.protectExcel !== false;
     restoreColumns(grid?.columns, grid?.excludedColumns, grid?.columnOrder);
+    manualSort=FashionManualSort.normalize(grid?.manualSort)||{enabled:false,orders:[]};$('manualSortEnabled').checked=manualSort.enabled;
     const savedSort=FashionSort.normalize(grid?.sort);
-    $('customSort').checked=!!savedSort;
+    $('customSort').checked=!!savedSort&&!manualSort.enabled;
     sortRules=savedSort || FashionSort.fields.map(f=>({field:f.key,direction:'asc'}));
     renderSort();
     $('scope').value = grid ? 'assigned' : 'all';

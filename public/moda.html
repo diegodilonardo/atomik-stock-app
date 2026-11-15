@@ -41,6 +41,13 @@
     <summary>Orden de los productos</summary>
     <p>Por defecto: Modelo → Color → Curva. Para personalizarlo, elegí los criterios en orden de prioridad y su dirección.</p>
     <label class="sort-toggle"><input type="checkbox" id="customSort"> Usar orden personalizado</label>
+    <label class="sort-toggle"><input type="checkbox" id="manualSortEnabled"> Orden manual por solapa</label>
+    <div id="manualSortPanel" hidden>
+      <p>Elegí una solapa y mové sus modelos con ↑ / ↓. Dentro de cada modelo podés ordenar colores y curvas. Los nuevos se agregan al final. Guardá los cambios de la grilla.</p>
+      <label>Solapa<select id="manualSortTab"></select></label>
+      <div class="manual-sort-columns"><section><h4>Modelos</h4><div id="manualModels"></div></section><section><h4>Colores del modelo</h4><select id="manualModel"></select><div id="manualColors"></div></section><section><h4>Curvas del color</h4><select id="manualColor"></select><div id="manualCurves"></div></section></div>
+      <button type="button" id="resetManualSort" class="secondary">Restablecer Modelo → Color → Curva</button>
+    </div>
     <div id="sortRules" class="sort-rules" hidden></div>
     <p>Categoría agrupa los productos en pantalla; el Excel conserva una solapa por categoría y ordena sus productos con los demás criterios.</p>
   </details>
@@ -115,4 +122,4 @@
     <div class="pagination"><span id="pageInfo"></span><div><button id="prev" class="secondary">Anterior</button><button id="next" class="secondary">Siguiente</button></div></div>
   </section>
   </div>
-</main><script src="/js/multi-select.js"></script><script src="/js/fashion-columns.js"></script><script src="/js/fashion-sort.js"></script><script src="/js/fashion-curves.js"></script><script src="/js/fashion-tabs.js"></script><script src="/js/moda.js"></script></body></html>
+</main><script src="/js/multi-select.js"></script><script src="/js/fashion-columns.js"></script><script src="/js/fashion-sort.js"></script><script src="/js/fashion-curves.js"></script><script src="/js/fashion-tabs.js"></script><script src="/js/fashion-manual-sort.js"></script><script src="/js/moda.js"></script></body></html>

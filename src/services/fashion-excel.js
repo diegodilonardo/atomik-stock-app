@@ -6,8 +6,10 @@ const { loadImageIndex, embedProductImages } = require('./product-images');
 async function buildFashionWorkbook(company, selection, products) {
   const valid = validateSelection(selection, products);
   if(!valid.items.length)throw Object.assign(new Error('Asigná productos antes de exportar la grilla.'),{status:400});
-  const compare = create(valid.sort);
+
   const expanded=require('../../public/js/fashion-curves').materialize(valid,products);
+  const categoryById=new Map(expanded.items.map(i=>[i.id,i.category]));
+  const compare=valid.manualSort?.enabled?require('../../public/js/fashion-manual-sort').create(valid.manualSort,valid.tabs,p=>categoryById.get(p.id)):create(valid.sort);
   const byId = new Map(expanded.products.map(p => [p.id, p]));
   const workbook = new ExcelJS.Workbook();
   workbook.fashionRows={};
