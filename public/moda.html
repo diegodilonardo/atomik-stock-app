@@ -114,7 +114,10 @@
   </section>
 
   <section class="panel">
-    <div class="fashion-actions"><div id="counts" role="group" aria-label="Ver productos de la grilla"></div><label class="fashion-table-search">Buscar en esta vista<input id="tableSearch" type="search" placeholder="Modelo, color, talle o código" aria-describedby="tableSearchHelp"></label><button id="clearTableSearch" type="button" class="secondary">Limpiar búsqueda</button><small id="tableSearchHelp">Podés combinar palabras. La búsqueda se aplica a todas las páginas de la vista actual.</small><span id="checkedCount" role="status" aria-live="polite"></span>
+    <div class="fashion-actions"><div id="counts" role="group" aria-label="Ver productos de la grilla"></div><label class="fashion-table-search">Buscar en esta vista<input id="tableSearch" type="search" placeholder="Modelo, color, talle o código" aria-describedby="tableSearchHelp"></label><button id="clearTableSearch" type="button" class="secondary">Limpiar búsqueda</button><small id="tableSearchHelp">Podés combinar palabras. La búsqueda se aplica a todas las páginas de la vista actual.</small><div class="fashion-view-filters">
+<label>Modelo<div id="viewModel"></div></label><label>Año<div id="viewYear"></div></label><label>Temporada<div id="viewSeason"></div></label><label>Color<div id="viewColor"></div></label>
+<label>Precio mayorista o público<select id="viewPrice"><option value="">Todos los precios</option><option value="missing">Precio = 0 o vacío</option></select></label>
+<button id="clearViewFilters" type="button" class="secondary">Limpiar filtros de esta vista</button></div><span id="checkedCount" role="status" aria-live="polite"></span>
       <button id="selectFiltered" type="button" class="secondary">Seleccionar todos los filtrados</button>
       <button id="clearSelection" type="button" class="secondary">Limpiar selección</button>
       <label>Asignar a<select id="category"><option>DISCIPLINA</option><option>HOMBRE</option><option>DAMA</option><option>KIDS</option><option>SUELTOS</option><option>ACCESORIOS</option></select></label>

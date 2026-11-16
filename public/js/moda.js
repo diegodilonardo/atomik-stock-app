@@ -120,12 +120,31 @@
     $('positiveStock').checked=false;
     for (const id of Object.keys(extraFilters)) pickers[id].setValues([]);
   }
+
+  const viewFields={viewModel:'DMODC',viewYear:'COD_ANIO',viewSeason:'COD_TEM',viewColor:'DCOLORC'};
+  const viewPickers=Object.fromEntries(Object.entries(viewFields).map(([id,field])=>[id,new MultiSelect($(id),{viewModel:'Modelo',viewYear:'Año',viewSeason:'Temporada',viewColor:'Color'}[id],'Todos')]));
+  function resetViewFilters(){for(const picker of Object.values(viewPickers))picker.setValues([]);$('viewPrice').value='';}
+  function renderViewFilters(){
+    const scope=$('scope').value;
+    const base=products.filter(p=>scope==='assigned'?assignments.has(p.id):categories.includes(scope)?assignments.get(p.id)===scope:scope==='unassigned'?!assignments.has(p.id):true);
+    for(const [id,field] of Object.entries(viewFields)){
+      viewPickers[id].display=v=>v||'Sin dato';
+      viewPickers[id].setOptions([...new Set(base.map(p=>String(p[field]??'')))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})));
+    }
+  }
+  function matchesViewFilters(p){
+    if(!Object.entries(viewFields).every(([id,field])=>!viewPickers[id].values.length||viewPickers[id].values.includes(String(p[field]??''))))return false;
+    return !$('viewPrice').value||[p.PRICE_WHOLESALE,p.PRICE_PUBLIC].some(v=>v==null||String(v).trim()===''||Number(v)===0);
+  }
+  for(const id of [...Object.keys(viewFields),'viewPrice'])$(id).addEventListener('change',()=>{checked.clear();page=1;render();});
+  $('clearViewFilters').onclick=()=>{resetViewFilters();$('tableSearch').value='';checked.clear();page=1;render();};
+
   function visible() {
     const years = selected('years'), seasons = selected('seasons'), scope = $('scope').value;
     const stockMatches = p => !$('positiveStock').checked || (p.STOCK !== null && p.STOCK !== undefined && Number.isFinite(Number(p.STOCK)) && Number(p.STOCK)>0);
     const normalizeSearch=value=>String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
     const tableWords=normalizeSearch($('tableSearch').value).split(/\s+/).filter(Boolean);
-    const tableMatches=p=>tableWords.every(word=>normalizeSearch([p.DMODC,p.DCOLORC,p.DTALLC,p.TALLC,p.CODIGO,p.COD_ALFA].join(' ')).includes(word));
+    const tableMatches=p=>matchesViewFilters(p) && tableWords.every(word=>normalizeSearch([p.DMODC,p.DCOLORC,p.DTALLC,p.TALLC,p.CODIGO,p.COD_ALFA].join(' ')).includes(word));
     // Review the entire assignment, even when browse filters hide some products.
     if (scope === 'assigned' || categories.includes(scope)) {
       return products.filter(p => tableMatches(p) && stockMatches(p) && (scope === 'assigned' ? assignments.has(p.id) : assignments.get(p.id) === scope));
@@ -139,6 +158,7 @@
   }
   function render() {
     invalidateBatch();
+    renderViewFilters();
     renderManualSort();
     renderCurves();
     const list = visible().sort(productComparator()), pages = Math.max(1, Math.ceil(list.length / 50)); page = Math.min(page, pages);
@@ -150,7 +170,7 @@
     $('counts').innerHTML = tabs.map(([value,label]) => `<button type="button" class="secondary" data-scope="${escape(value)}" aria-pressed="${scope===value}" ${busy?'disabled':''}>${escape(label)}</button>`).join('');
     const reviewing = scope === 'assigned' || categories.includes(scope);
     $('selectionViewHint').hidden = !reviewing;
-    $('selectionViewHint').textContent = 'Mostrando los productos asignados, con la búsqueda de esta vista y Solo stock mayor a 0 si está activado. Los filtros de año, temporada y demás opciones de exploración no se aplican aquí. Podés seleccionarlos para cambiar su categoría o quitarlos. “Explorar productos” vuelve a tus filtros.';
+    $('selectionViewHint').textContent = 'Mostrando los productos asignados, con los filtros y la búsqueda de esta vista y Solo stock mayor a 0 si está activado. Los filtros de año, temporada y demás opciones de exploración no se aplican aquí. Podés seleccionarlos para cambiar su categoría o quitarlos. “Explorar productos” vuelve a tus filtros.';
     $('clearTableSearch').disabled=busy||!$('tableSearch').value;
     $('selectFiltered').textContent = `Seleccionar todos los ${reviewing ? 'resultados' : 'filtrados'} (${list.length})`;
     $('selectFiltered').disabled = busy || !list.length || list.every(p=>checked.has(p.id));
@@ -231,6 +251,7 @@
   function gridOptions() { setOptions('saved', [['','Nueva grilla'],...grids.map(g=>[String(g.id),g.name])], [String(current?.id || '')]); }
   function openGrid(grid) {
     categories=FashionTabs.normalize(grid?.tabs);renderTabs();
+    resetViewFilters();
     current = grid; $('curveModelFilter').value='';batchSelected.clear();batchSnapshot=null;$('batchConfirmation').hidden=true;$('tableSearch').value=''; curveTemplates=structuredClone(grid?.curveTemplates || []);batchModels.setValues([]);batchColors.setValues([]);curves=structuredClone(grid?.curves || []); curveDraft=[];$('curveDraft').hidden=true; assignments.clear(); checked.clear();
     $('protectExcel').checked=grid?.protectExcel !== false;
     restoreColumns(grid?.columns, grid?.excludedColumns, grid?.columnOrder);
