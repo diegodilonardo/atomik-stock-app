@@ -36,7 +36,7 @@
       const id='virtual:'+curve.id;
       const product={...first,id,CODIGO:'',COD_ALFA:'',NIVEL:950,PARES:pairs,STOCK:0,
         DTALLC:parts.map(p=>size(p.product)+' × '+p.quantity).join(' / '),TALLC:'',
-        PRECIO:sum('PRICE_WHOLESALE'),PRICE_WHOLESALE:sum('PRICE_WHOLESALE')/pairs,PRICE_PUBLIC:sum('PRICE_PUBLIC')/pairs,
+        PRECIO:sum('PRICE_WHOLESALE'),PRICE_WHOLESALE:sum('PRICE_WHOLESALE')/pairs,PRICE_PUBLIC:Math.round(sum('PRICE_PUBLIC')/pairs),
         VIRTUAL_NAME:curve.name,VIRTUAL_PARTS:parts.map(p=>({code:p.product.CODIGO,alpha:p.product.COD_ALFA,quantity:p.quantity}))};
       virtual.push({product,item:{id,category:items.find(i=>i.id===first.id).category}});
       parts.forEach(p=>consumed.add(p.id));

@@ -19,15 +19,17 @@
     <button id="export" class="primary">Descargar Excel</button><button id="refresh" class="secondary editor">Actualizar maestro</button>
     <button id="archive" class="secondary editor" disabled>Anular grilla</button>
   </section>
-  <details class="panel fashion-columns editor">
-    <summary>Solapas de esta grilla</summary>
+  <section class="panel fashion-configuration" aria-label="Configuración de la grilla">
+    <div class="fashion-config-heading"><strong>Configuración de la grilla</strong><span>Solapas, formato y organización del Excel</span></div>
+  <details class="fashion-config-item editor">
+    <summary><span>Solapas</span><small>Crear, renombrar y ordenar</small></summary>
     <p>Creá, renombrá y ordená las solapas. RESUMEN y PEDIDO son automáticas. Las solapas vacías no se exportan.</p>
     <div class="fashion-controls"><label>Nueva solapa<input id="newTabName" maxlength="31" placeholder="Ej.: DEPORTIVOS"></label><button id="addTab" type="button" class="secondary">Agregar solapa</button></div>
     <div id="gridTabs"></div>
     <p>Guardá los cambios de la grilla para conservar esta configuración.</p>
   </details>
-  <details class="panel fashion-columns">
-    <summary>Columnas del Excel</summary>
+  <details class="fashion-config-item">
+    <summary><span>Columnas del Excel</span><small>Campos, visibilidad y posición</small></summary>
     <p>Elegí Mostrar, Ocultar o No incluir para cada campo y usá ↑ / ↓ para ordenar los campos. Los ocultos conservan su posición. Los campos ocultos se conservan en el Excel y siguen disponibles para los cálculos, RESUMEN y PEDIDO. No incluir elimina la columna del Excel; los campos necesarios para cálculos y PEDIDO solo pueden ocultarse. Pedido siempre queda visible. La configuración se aplica a todas las categorías y se guarda con la grilla.</p>
     <div id="fashionColumns" aria-label="Campos y orden del Excel"></div>
     <div class="fashion-column-actions">
@@ -37,8 +39,8 @@
     <p id="columnSaveHelp">El orden y la visibilidad se guardan por grilla. Después de modificarlos, guardá los cambios.</p>
     <p id="columnsPreview" aria-live="polite"></p>
   </details>
-  <details class="panel fashion-sort">
-    <summary>Orden de los productos</summary>
+  <details class="fashion-config-item fashion-sort">
+    <summary><span>Orden de los productos</span><small>Por criterios o con flechas</small></summary>
     <p>Por defecto: Modelo → Color → Curva. Para personalizarlo, elegí los criterios en orden de prioridad y su dirección.</p>
     <label class="sort-toggle"><input type="checkbox" id="customSort"> Usar orden personalizado</label>
     <label class="sort-toggle"><input type="checkbox" id="manualSortEnabled"> Orden manual por solapa</label>
@@ -51,27 +53,8 @@
     <div id="sortRules" class="sort-rules" hidden></div>
     <p>Categoría agrupa los productos en pantalla; el Excel conserva una solapa por categoría y ordena sus productos con los demás criterios.</p>
   </details>
-  <section class="panel fashion-filters">
-    <div class="fashion-filter-field"><span>Año</span><div id="years"></div></div>
-    <div class="fashion-filter-field"><span>Temporada</span><div id="seasons"></div></div>
-    <div class="fashion-filter-field"><span>Marca</span><div id="brands"></div></div>
-    <div class="fashion-filter-field"><span>Licencia</span><div id="licenses"></div></div>
-    <div class="fashion-filter-field"><span>Rubro</span><div id="rubros"></div></div>
-    <div class="fashion-filter-field"><span>Nivel / tipo de módulo</span><div id="levels"></div></div>
-    <div class="fashion-filter-field"><span>Clasificación (detalle)</span><div id="classifications"></div></div>
-    <div class="fashion-filter-field"><span>Edad</span><div id="ages"></div></div>
-    <div class="fashion-filter-field"><span>Sexo</span><div id="sexes"></div></div>
-    <div class="fashion-filter-field"><span>Color</span><div id="colors"></div></div>
-    <div class="fashion-filter-field"><span>Disciplina</span><div id="disciplines"></div></div>
-    <label>Buscar<input id="search" placeholder="Modelo, color o código"></label>
-    <label>Ver<select id="scope"><option value="all">Todos</option><option value="assigned">Asignados</option><option value="unassigned">Sin asignar</option><option>DISCIPLINA</option><option>HOMBRE</option><option>DAMA</option><option>KIDS</option><option>SUELTOS</option><option>ACCESORIOS</option></select></label>
-    <small id="filterHelp">Seleccioná al menos un año y una temporada. Marcá una o varias opciones con las casillas. Podés cambiar los filtros y sumar productos de distintos años y temporadas a la misma grilla.</small>
-    <small id="extraFilterHelp">Marca, licencia, rubro, nivel, clasificación, edad, sexo, color y disciplina: sin selección se muestran todos. Podés marcar varios valores. Estos filtros ayudan a buscar; los productos ya asignados a la grilla se conservan.</small>
-    <label class="fashion-stock-filter"><input id="positiveStock" type="checkbox"> Solo stock mayor a 0</label>
-    <button id="clearExtraFilters" class="secondary" type="button">Limpiar filtros adicionales</button>
-  </section>
-  <details class="panel fashion-columns" id="virtualCurvePanel">
-    <summary>Curvas virtuales de sueltos sin stock</summary>
+  <details class="fashion-config-item" id="virtualCurvePanel">
+    <summary><span>Curvas virtuales</span><small>Agrupar sueltos sin stock</small></summary>
     <p>Seleccioná los talles de un mismo modelo y color en la tabla. Solo se admiten productos sueltos, de un par y stock 0. La curva reemplaza esos productos por una fila en el Excel; PEDIDO conserva sus códigos originales.</p>
     <details class="fashion-curve-card editor"><summary>Definir curva sin seleccionar productos</summary>
       <label>Nombre<input id="templateName" maxlength="100" placeholder="Ej.: S–XL, 6 pares"></label>
@@ -109,6 +92,27 @@
     <div id="virtualCurves" class="curve-compact-list"></div>
     <p>Las curvas se guardan con la grilla. Para editar sus integrantes o cantidades, desarmá la curva y volvé a crearla; los productos se conservan asignados.</p>
   </details>
+  </section>
+  <section class="panel fashion-filters">
+    <div class="fashion-filter-field"><span>Año</span><div id="years"></div></div>
+    <div class="fashion-filter-field"><span>Temporada</span><div id="seasons"></div></div>
+    <div class="fashion-filter-field"><span>Marca</span><div id="brands"></div></div>
+    <div class="fashion-filter-field"><span>Licencia</span><div id="licenses"></div></div>
+    <div class="fashion-filter-field"><span>Rubro</span><div id="rubros"></div></div>
+    <div class="fashion-filter-field"><span>Nivel / tipo de módulo</span><div id="levels"></div></div>
+    <div class="fashion-filter-field"><span>Clasificación (detalle)</span><div id="classifications"></div></div>
+    <div class="fashion-filter-field"><span>Edad</span><div id="ages"></div></div>
+    <div class="fashion-filter-field"><span>Sexo</span><div id="sexes"></div></div>
+    <div class="fashion-filter-field"><span>Color</span><div id="colors"></div></div>
+    <div class="fashion-filter-field"><span>Disciplina</span><div id="disciplines"></div></div>
+    <label>Buscar<input id="search" placeholder="Modelo, color o código"></label>
+    <label>Ver<select id="scope"><option value="all">Todos</option><option value="assigned">Asignados</option><option value="unassigned">Sin asignar</option><option>DISCIPLINA</option><option>HOMBRE</option><option>DAMA</option><option>KIDS</option><option>SUELTOS</option><option>ACCESORIOS</option></select></label>
+    <small id="filterHelp">Seleccioná al menos un año y una temporada. Marcá una o varias opciones con las casillas. Podés cambiar los filtros y sumar productos de distintos años y temporadas a la misma grilla.</small>
+    <small id="extraFilterHelp">Marca, licencia, rubro, nivel, clasificación, edad, sexo, color y disciplina: sin selección se muestran todos. Podés marcar varios valores. Estos filtros ayudan a buscar; los productos ya asignados a la grilla se conservan.</small>
+    <label class="fashion-stock-filter"><input id="positiveStock" type="checkbox"> Solo stock mayor a 0</label>
+    <button id="clearExtraFilters" class="secondary" type="button">Limpiar filtros adicionales</button>
+  </section>
+
   <section class="panel">
     <div class="fashion-actions"><div id="counts" role="group" aria-label="Ver productos de la grilla"></div><label class="fashion-table-search">Buscar en esta vista<input id="tableSearch" type="search" placeholder="Modelo, color, talle o código" aria-describedby="tableSearchHelp"></label><button id="clearTableSearch" type="button" class="secondary">Limpiar búsqueda</button><small id="tableSearchHelp">Podés combinar palabras. La búsqueda se aplica a todas las páginas de la vista actual.</small><span id="checkedCount" role="status" aria-live="polite"></span>
       <button id="selectFiltered" type="button" class="secondary">Seleccionar todos los filtrados</button>

@@ -16,7 +16,7 @@ function applyFashionPrices(products, company, rules) {
     if (!Number.isInteger(pairs) || pairs <= 0) throw Object.assign(new Error(`El producto ${product.COD_ALFA || product.CODIGO || ''} no tiene una cantidad válida de pares por módulo.`), {status:400});
     const wholesale = Number(product.PRECIO) / pairs;
     return { ...product, PRICE_WHOLESALE:wholesale, PUBLIC_PRICE_FACTOR:factor,
-      PRICE_PUBLIC:Math.round((wholesale * factor + Number.EPSILON)*10000)/10000 };
+      PRICE_PUBLIC:Math.round(wholesale * factor) };
   });
 }
 

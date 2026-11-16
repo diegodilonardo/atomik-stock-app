@@ -30,7 +30,7 @@ function baseRow(row, isModule, factor) {
     isModule ? curveLabel(row) : row.TALLC,
     isModule ? pairDistribution(row) : '1', row.SEXO, row.EDAD, row.DISCIPLINA || '',
     row.CODIGO, row.COD_ALFA, 0, Number(row.STOCK), null,
-    wholesale, row.PRICE_PUBLIC ?? wholesale * factor, null,
+    wholesale, Math.round(row.PRICE_PUBLIC ?? wholesale * factor), null,
     Number(row.PRECIO), '', pairs
   ];
 }

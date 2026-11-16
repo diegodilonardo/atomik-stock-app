@@ -1,5 +1,7 @@
 (() => {
   const $ = id => document.getElementById(id);
+  const configPanels=[...document.querySelectorAll('.fashion-config-item')];
+  configPanels.forEach(panel=>panel.addEventListener('toggle',()=>{if(panel.open)configPanels.forEach(other=>{if(other!==panel)other.open=false;});}));
   const company = new URLSearchParams(location.search).get('company');
   const suffix = company ? '?company=' + encodeURIComponent(company) : '';
   $('back').href = '/' + suffix;

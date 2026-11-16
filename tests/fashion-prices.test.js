@@ -27,3 +27,9 @@ test('precios por par y subtotal por módulos conservan el importe del maestro',
   assert.equal(p.PRECIO,1200);
   for(const pairs of [0,-1,null,undefined]) assert.throws(()=>applyFashionPrices([{PARES:pairs,PRECIO:100}],{PUBLIC_PRICE_FACTOR:1.85},[]),/pares por módulo/);
 });
+test('precio público se redondea al entero más cercano después del coeficiente',()=>{
+ const {applyFashionPrices}=require('../src/services/fashion-prices');
+ const rows=applyFashionPrices([10.24,10.25,0].map(PRECIO=>({PRECIO,PARES:1})),{PUBLIC_PRICE_FACTOR:2},[]);
+ assert.deepEqual(rows.map(p=>p.PRICE_PUBLIC),[20,21,0]);
+ assert.equal(rows[0].PRICE_WHOLESALE,10.24);
+});

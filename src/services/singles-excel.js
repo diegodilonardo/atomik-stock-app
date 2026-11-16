@@ -40,7 +40,7 @@ function configureSingles(workbook, products, company) {
   for (const rows of groups.values()) {
     rows.sort((a, b) => compareSizes(String(a.TALLC || ''), String(b.TALLC || '')) || String(a.COD_ALFA).localeCompare(String(b.COD_ALFA)));
     const first = rows[0];
-    const prices = rows.map(row => [Number(row.PRECIO || 0) / Number(row.PARES || 1), row.PRICE_PUBLIC ?? Number(row.PRECIO || 0) / Number(row.PARES || 1) * company.PUBLIC_PRICE_FACTOR]);
+    const prices = rows.map(row => [Number(row.PRECIO || 0) / Number(row.PARES || 1), Math.round(row.PRICE_PUBLIC ?? Number(row.PRECIO || 0) / Number(row.PARES || 1) * company.PUBLIC_PRICE_FACTOR)]);
     const common = prices.every(p => p.every((v, i) => v === prices[0][i]));
     const width = Math.max(12, rows.length + 11); maxCol = Math.max(maxCol, width);
     for (let c = 12; c <= width; c++) sheet.getColumn(c).width = 11;

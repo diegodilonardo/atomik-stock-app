@@ -46,7 +46,7 @@ test('Excel de moda contiene solo categorías con productos, precios por par y c
   assert.deepEqual(workbook.worksheets.filter(s=>s.state==='visible').map(s=>s.name),['HOMBRE','DAMA','RESUMEN','PEDIDO']);
   assert.equal(workbook.getWorksheet('DAMA').getCell('L3').value,0);
   assert.equal(workbook.getWorksheet('HOMBRE').getCell('L3').value,1500.25/12);
-  assert.equal(workbook.getWorksheet('HOMBRE').getCell('M3').value,231.2885);
+  assert.equal(workbook.getWorksheet('HOMBRE').getCell('M3').value,231);
   assert.equal(workbook.getWorksheet('DAMA').getCell('M3').value,0);
   assert.equal(workbook.getWorksheet('HOMBRE').getCell('O3').value.formula,'ROUND(L3*K3*N3,2)');
   for(const category of ['HOMBRE','DAMA']){const sheet=workbook.getWorksheet(category);assert.equal(sheet.getColumn(17).hidden,false);assert.equal(sheet.getColumn(16).hidden,false);assert.ok(sheet.getRow(2).values.includes('STOCK'));}
